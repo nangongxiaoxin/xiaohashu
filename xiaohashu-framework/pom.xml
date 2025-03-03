@@ -20,6 +20,7 @@
     <modules>
         <!-- 通用工具组件 -->
         <module>xiaohashu-common</module>
+        <module>xiaohashu-spring-boot-starter-biz-operationlog</module>
     </modules>
 
 </project>
