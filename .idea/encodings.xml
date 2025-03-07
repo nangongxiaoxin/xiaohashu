@@ -9,6 +9,8 @@
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-start-jackson/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-start-jackson/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-biz-operationlog/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-biz-operationlog/src/main/resources" charset="UTF-8" />
   </component>
