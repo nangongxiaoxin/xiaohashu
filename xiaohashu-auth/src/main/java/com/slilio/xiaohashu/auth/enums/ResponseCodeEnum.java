@@ -10,9 +10,10 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
   // ----------- 通用异常状态码 -----------
   SYSTEM_ERROR("AUTH_10000", "出错了，后台小哥正在努力修复中..."),
   PARAM_NOT_VALID("AUTH-10001", "参数错误"),
-// ----------- 业务异常状态码 -----------
 
-;
+  // ----------- 业务异常状态码 -----------
+  VERIFICATION_CODE_SEND_FREQUENTLY("AUTH_20000", "请求太频繁，请三分钟后再试"),
+  ;
 
   // 异常码
   private final String errorCode;
