@@ -91,4 +91,29 @@ public class GlobalExceptionHandler {
     log.error("{} request error, ", request.getRequestURI(), e);
     return Response.fail(ResponseCodeEnum.SYSTEM_ERROR);
   }
+
+  /**
+   * 捕获guava参数校验异常
+   *
+   * @param request
+   * @param e
+   * @return
+   */
+  @ExceptionHandler({IllegalArgumentException.class})
+  @ResponseBody
+  public Response<Object> handleIllegalArgumentException(
+      HttpServletRequest request, IllegalArgumentException e) {
+    // 参数错误异常码
+    String errorCode = ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode();
+
+    // 错误信息
+    String errorMessage = e.getMessage();
+
+    log.warn(
+        "{} request error,errorCode: {}, errorMessage: {}",
+        request.getRequestURI(),
+        errorCode,
+        errorMessage);
+    return Response.fail(errorCode, errorMessage);
+  }
 }

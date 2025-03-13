@@ -1,17 +1,27 @@
 package com.slilio.xiaohashu.auth.domain.mapper;
 
 import com.slilio.xiaohashu.auth.domain.dataobject.RolePermissionDO;
+import java.util.List;
+import org.apache.ibatis.annotations.Param;
 
 public interface RolePermissionDOMapper {
-    int deleteByPrimaryKey(Long id);
+  int deleteByPrimaryKey(Long id);
 
-    int insert(RolePermissionDO record);
+  int insert(RolePermissionDO record);
 
-    int insertSelective(RolePermissionDO record);
+  int insertSelective(RolePermissionDO record);
 
-    RolePermissionDO selectByPrimaryKey(Long id);
+  RolePermissionDO selectByPrimaryKey(Long id);
 
-    int updateByPrimaryKeySelective(RolePermissionDO record);
+  int updateByPrimaryKeySelective(RolePermissionDO record);
 
-    int updateByPrimaryKey(RolePermissionDO record);
+  int updateByPrimaryKey(RolePermissionDO record);
+
+  /**
+   * 根据角色Id集合批量查询
+   *
+   * @param roleIds
+   * @return
+   */
+  List<RolePermissionDO> selectByRoleIds(@Param("roleIds") List<Long> roleIds);
 }
