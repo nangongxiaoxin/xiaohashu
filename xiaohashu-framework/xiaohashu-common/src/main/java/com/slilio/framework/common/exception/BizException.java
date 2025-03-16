@@ -6,9 +6,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BizException extends RuntimeException {
-  //异常码
+  // 异常码
   private String errorCode;
-  //错误信息
+  // 错误信息
   private String errorMessage;
 
   public BizException(BaseExceptionInterface baseExceptionInterface) {

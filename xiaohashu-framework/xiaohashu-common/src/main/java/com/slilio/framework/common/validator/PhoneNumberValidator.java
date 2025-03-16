@@ -5,14 +5,13 @@ import jakarta.validation.ConstraintValidatorContext;
 
 // 注解的验证器类
 public class PhoneNumberValidator implements ConstraintValidator<PhoneNumber, String> {
+
   @Override
-  public void initialize(PhoneNumber constraintAnnotation) {
-    // 在此进行初始化操作
-  }
+  public void initialize(PhoneNumber constraintAnnotation) {}
 
   @Override
   public boolean isValid(String phoneNumber, ConstraintValidatorContext context) {
-    // 逻辑校验
+    // 校验逻辑：正则表达式判断手机号是否为 11 位数字
     return phoneNumber != null && phoneNumber.matches("\\d{11}");
   }
 }

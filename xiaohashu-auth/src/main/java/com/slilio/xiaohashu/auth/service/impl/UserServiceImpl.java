@@ -3,15 +3,17 @@ package com.slilio.xiaohashu.auth.service.impl;
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
 import com.google.common.base.Preconditions;
-import com.slilio.framework.common.enums.DeleteEnum;
+import com.slilio.framework.common.enums.DeletedEnum;
 import com.slilio.framework.common.enums.StatusEnum;
 import com.slilio.framework.common.exception.BizException;
 import com.slilio.framework.common.response.Response;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.auth.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.auth.constant.RoleConstants;
+import com.slilio.xiaohashu.auth.domain.dataobject.RoleDO;
 import com.slilio.xiaohashu.auth.domain.dataobject.UserDO;
 import com.slilio.xiaohashu.auth.domain.dataobject.UserRoleDO;
+import com.slilio.xiaohashu.auth.domain.mapper.RoleDOMapper;
 import com.slilio.xiaohashu.auth.domain.mapper.UserDOMapper;
 import com.slilio.xiaohashu.auth.domain.mapper.UserRoleDOMapper;
 import com.slilio.xiaohashu.auth.enums.LoginTypeEnum;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -37,6 +40,7 @@ public class UserServiceImpl implements UserService {
   @Resource private RedisTemplate<String, Object> redisTemplate;
   @Resource private UserRoleDOMapper userRoleDOMapper;
   @Resource private TransactionTemplate transactionTemplate;
+  @Autowired private RoleDOMapper roleDOMapper;
 
   /**
    * 登录与注册
@@ -108,25 +112,25 @@ public class UserServiceImpl implements UserService {
     return transactionTemplate.execute(
         status -> {
           try {
-            // 获取全局自增的小哈书ID
+            // 获取全局自增的小哈书 ID
             Long xiaohashuId =
                 redisTemplate.opsForValue().increment(RedisKeyConstants.XIAOHASHU_ID_GENERATOR_KEY);
 
             UserDO userDO =
                 UserDO.builder()
                     .phone(phone)
-                    .xiaohashuId(String.valueOf(xiaohashuId)) // 自动生成小哈书ID号
-                    .nickname("小红薯" + xiaohashuId) // 自动生成昵称
+                    .xiaohashuId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
+                    .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
                     .status(StatusEnum.ENABLE.getValue()) // 状态为启用
                     .createTime(LocalDateTime.now())
                     .updateTime(LocalDateTime.now())
-                    .isDeleted(DeleteEnum.NO.getValue()) // 逻辑删除
+                    .isDeleted(DeletedEnum.NO.getValue()) // 逻辑删除
                     .build();
 
             // 添加入库
             userDOMapper.insert(userDO);
 
-            // 获取刚刚添加的用户角色
+            // 获取刚刚添加入库的用户 ID
             Long userId = userDO.getId();
 
             // 给该用户分配一个默认角色
@@ -136,22 +140,23 @@ public class UserServiceImpl implements UserService {
                     .roleId(RoleConstants.COMMON_USER_ROLE_ID)
                     .createTime(LocalDateTime.now())
                     .updateTime(LocalDateTime.now())
-                    .isDeleted(DeleteEnum.NO.getValue())
+                    .isDeleted(DeletedEnum.NO.getValue())
                     .build();
-
-            // 添加入库
             userRoleDOMapper.insert(userRoleDO);
 
-            // 将该角色存入redis
-            List<Long> roles = new ArrayList<>();
-            roles.add(RoleConstants.COMMON_USER_ROLE_ID);
-            String userRolesKey = RedisKeyConstants.buildUserRolesKey(phone);
+            RoleDO roleDO = roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID);
+
+            // 将该用户的角色 ID 存入 Redis 中
+            List<String> roles = new ArrayList<>(1);
+            roles.add(roleDO.getRoleKey());
+
+            String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
             redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
 
             return userId;
           } catch (Exception e) {
             status.setRollbackOnly(); // 标记事务为回滚
-            log.error("==》 系统注册用户异常：", e);
+            log.error("==> 系统注册用户异常: ", e);
             return null;
           }
         });

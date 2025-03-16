@@ -14,7 +14,6 @@ import com.slilio.xiaohashu.auth.domain.mapper.RolePermissionDOMapper;
 import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +25,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class PushRolePermissions2RedisRunner implements ApplicationRunner {
+
   @Resource private RedisTemplate<String, String> redisTemplate;
   @Resource private RoleDOMapper roleDOMapper;
   @Resource private PermissionDOMapper permissionDOMapper;
@@ -74,40 +74,39 @@ public class PushRolePermissions2RedisRunner implements ApplicationRunner {
             permissionDOS.stream()
                 .collect(Collectors.toMap(PermissionDO::getId, permissionDO -> permissionDO));
 
-        // 组织 角色ID-权限 关系
-        Map<Long, List<PermissionDO>> roleIdPermissionDOMap = Maps.newHashMap();
+        // 组织 角色-权限 关系
+        Map<String, List<String>> roleKeyPermissionsMap = Maps.newHashMap();
 
         // 循环所有角色
         roleDOS.forEach(
             roleDO -> {
               // 当前角色 ID
               Long roleId = roleDO.getId();
+              // 当前角色 roleKey
+              String roleKey = roleDO.getRoleKey();
               // 当前角色 ID 对应的权限 ID 集合
               List<Long> permissionIds = roleIdPermissionIdsMap.get(roleId);
               if (CollUtil.isNotEmpty(permissionIds)) {
-                List<PermissionDO> perDOS = Lists.newArrayList();
+                List<String> permissionKeys = Lists.newArrayList();
                 permissionIds.forEach(
                     permissionId -> {
                       // 根据权限 ID 获取具体的权限 DO 对象
                       PermissionDO permissionDO = permissionIdDOMap.get(permissionId);
-                      if (Objects.nonNull(permissionDO)) {
-                        perDOS.add(permissionDO);
-                      }
+                      permissionKeys.add(permissionDO.getPermissionKey());
                     });
-                roleIdPermissionDOMap.put(roleId, perDOS);
+                roleKeyPermissionsMap.put(roleKey, permissionKeys);
               }
             });
 
-        // 同步至 Redis 中，方便后续网关查询鉴权使用
-        roleIdPermissionDOMap.forEach(
-            (roleId, permissionDOS1) -> {
-              String key = RedisKeyConstants.buildRolePermissionsKey(roleId);
-              redisTemplate.opsForValue().set(key, JsonUtils.toJsonString(permissionDOS1));
+        // 同步至 Redis 中，方便后续网关查询 Redis, 用于鉴权
+        roleKeyPermissionsMap.forEach(
+            (roleKey, permissions) -> {
+              String key = RedisKeyConstants.buildRolePermissionsKey(roleKey);
+              redisTemplate.opsForValue().set(key, JsonUtils.toJsonString(permissions));
             });
       }
 
       log.info("==> 服务启动，成功同步角色权限数据到 Redis 中...");
-
     } catch (Exception e) {
       log.error("==> 同步角色权限数据到 Redis 中失败: ", e);
     }

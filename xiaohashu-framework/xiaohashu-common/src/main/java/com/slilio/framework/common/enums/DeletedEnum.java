@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum DeleteEnum {
+public enum DeletedEnum {
   YES(true),
   NO(false);
 
