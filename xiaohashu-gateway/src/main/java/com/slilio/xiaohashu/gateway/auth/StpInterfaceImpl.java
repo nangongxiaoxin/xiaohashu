@@ -15,12 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-/**
- * @author: 犬小哈
- * @date: 2024/4/5 18:04
- * @version: v1.0.0
- * @description: 自定义权限验证接口扩展
- */
+/** 自定义权限验证接口扩展 */
 @Component
 @Slf4j
 public class StpInterfaceImpl implements StpInterface {
