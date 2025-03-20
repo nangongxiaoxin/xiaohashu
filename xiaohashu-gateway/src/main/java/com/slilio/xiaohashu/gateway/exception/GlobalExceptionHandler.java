@@ -59,7 +59,7 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
                 // 使用objectMapper将result对象转换为json字节数组
                 return bufferFactory.wrap(objectMapper.writeValueAsBytes(result));
               } catch (Exception e) {
-                // 如果转换的过程出现异常，则返回空字节数组
+                // 如果转换的过程出现异常 则返回空字节数组
                 return bufferFactory.wrap(new byte[0]);
               }
             }));
