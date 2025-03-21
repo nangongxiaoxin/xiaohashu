@@ -11,4 +11,12 @@ public interface UserService {
    * @return
    */
   Response<String> loginAndRegister(UserLoginReqVO userLoginReqVO);
+
+  /**
+   * 退出登录
+   *
+   * @param userId
+   * @return
+   */
+  Response<?> logout();
 }

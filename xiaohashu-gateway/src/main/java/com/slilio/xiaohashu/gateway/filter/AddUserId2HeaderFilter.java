@@ -2,8 +2,8 @@ package com.slilio.xiaohashu.gateway.filter;
 
 import cn.dev33.satoken.stp.StpUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 /** 转发请求时，将用户 ID 添加到 Header 请求头中，透传给下游服务（SaReactorFilter 优先级大于 AddUserId2HeaderFilter ） */
 @Component
 @Slf4j
-public class AddUserId2HeaderFilter implements GatewayFilter {
+public class AddUserId2HeaderFilter implements GlobalFilter {
   // 请求头中 用户ID的键
   private static final String HEADER_USER_ID = "userId";
 

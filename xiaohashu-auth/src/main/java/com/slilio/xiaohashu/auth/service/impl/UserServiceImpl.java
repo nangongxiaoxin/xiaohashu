@@ -18,6 +18,7 @@ import com.slilio.xiaohashu.auth.domain.mapper.UserDOMapper;
 import com.slilio.xiaohashu.auth.domain.mapper.UserRoleDOMapper;
 import com.slilio.xiaohashu.auth.enums.LoginTypeEnum;
 import com.slilio.xiaohashu.auth.enums.ResponseCodeEnum;
+import com.slilio.xiaohashu.auth.filter.LoginUserContextHolder;
 import com.slilio.xiaohashu.auth.model.vo.user.UserLoginReqVO;
 import com.slilio.xiaohashu.auth.service.UserService;
 import jakarta.annotation.Resource;
@@ -100,6 +101,24 @@ public class UserServiceImpl implements UserService {
     SaTokenInfo tokenInfo = StpUtil.getTokenInfo();
     // 返回token令牌
     return Response.success(tokenInfo.tokenValue);
+  }
+
+  /**
+   * 退出登录
+   *
+   * @param userId
+   * @return
+   */
+  @Override
+  public Response<?> logout() {
+    Long userId = LoginUserContextHolder.getUserId();
+
+    log.info("==> 用户退出登录, userId: {}", userId);
+
+    // 退出登录 (指定用户 ID)
+    StpUtil.logout(userId);
+
+    return Response.success();
   }
 
   /**
