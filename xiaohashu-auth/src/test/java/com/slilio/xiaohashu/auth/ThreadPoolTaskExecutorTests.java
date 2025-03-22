@@ -26,4 +26,25 @@ public class ThreadPoolTaskExecutorTests {
       testSubmit();
     }
   }
+
+  public static void main(String[] args) {
+
+    // 初始化 InheritableThreadLocal
+    ThreadLocal<Long> threadLocal = new InheritableThreadLocal<>();
+
+    // 假设用户 ID 为 1
+    Long userId = 1L;
+
+    // 设置用户 ID 到 InheritableThreadLocal 中
+    threadLocal.set(userId);
+
+    System.out.println("主线程打印用户 ID: " + threadLocal.get());
+
+    // 异步线程
+    new Thread(
+            () -> {
+              System.out.println("异步线程打印用户 ID: " + threadLocal.get());
+            })
+        .start();
+  }
 }

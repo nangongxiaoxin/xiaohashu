@@ -30,12 +30,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
+
+  @Resource(name = "taskExecutor")
+  private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
   @Resource private UserDOMapper userDOMapper;
   @Resource private RedisTemplate<String, Object> redisTemplate;
@@ -114,6 +118,12 @@ public class UserServiceImpl implements UserService {
     Long userId = LoginUserContextHolder.getUserId();
 
     log.info("==> 用户退出登录, userId: {}", userId);
+
+    threadPoolTaskExecutor.submit(
+        () -> {
+          Long userId2 = LoginUserContextHolder.getUserId();
+          log.info("==> 异步线程中获取 userId: {}", userId2);
+        });
 
     // 退出登录 (指定用户 ID)
     StpUtil.logout(userId);

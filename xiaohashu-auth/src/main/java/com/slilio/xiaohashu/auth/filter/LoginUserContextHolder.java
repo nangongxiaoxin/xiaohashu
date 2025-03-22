@@ -1,5 +1,6 @@
 package com.slilio.xiaohashu.auth.filter;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
 import com.slilio.framework.common.constant.GlobalConstants;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.Objects;
 public class LoginUserContextHolder {
   // 初始化一个ThreadLocal变量
   private static final ThreadLocal<Map<String, Object>> LOGIN_USER_CONTEXT_THREAD_LOCAL =
-      ThreadLocal.withInitial(HashMap::new);
+      TransmittableThreadLocal.withInitial(HashMap::new);
 
   /**
    * 设置用户ID
