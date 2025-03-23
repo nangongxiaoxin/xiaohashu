@@ -22,6 +22,8 @@
         <module>xiaohashu-framework</module>
         <!-- Gateway网关服务 -->
         <module>xiaohashu-gateway</module>
+        <!-- 对象存储服务 -->
+        <module>xiaohashu-oss</module>
     </modules>
 
     <properties>
