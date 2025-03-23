@@ -21,7 +21,8 @@
         <!-- 通用工具组件 -->
         <module>xiaohashu-common</module>
         <module>xiaohashu-spring-boot-starter-biz-operationlog</module>
-        <module>xiaohashu-spring-boot-start-jackson</module>
+        <module>xiaohashu-spring-boot-starter-jackson</module>
+        <module>xiaohashu-spring-boot-starter-biz-context</module>
     </modules>
 
 </project>

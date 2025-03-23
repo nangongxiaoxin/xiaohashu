@@ -68,7 +68,7 @@
         <!-- Jackson 组件 -->
         <dependency>
             <groupId>com.slilio</groupId>
-            <artifactId>xiaohashu-spring-boot-start-jackson</artifactId>
+            <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
         </dependency>
 
     </dependencies>

@@ -1,5 +1,6 @@
-package com.slilio.xiaohashu.auth.filter;
+package com.slilio.framework.biz.context.filter;
 
+import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.constant.GlobalConstants;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -8,11 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-/** 提取请求头中的用户 ID 保存到上下文中，以方便后续使用 */
-@Component
 @Slf4j
 public class HeaderUserId2ContextFilter extends OncePerRequestFilter {
   @Override

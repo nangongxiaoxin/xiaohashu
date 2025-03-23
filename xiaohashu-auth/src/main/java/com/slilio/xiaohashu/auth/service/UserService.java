@@ -1,6 +1,7 @@
 package com.slilio.xiaohashu.auth.service;
 
 import com.slilio.framework.common.response.Response;
+import com.slilio.xiaohashu.auth.model.vo.user.UpdatePasswordReqVO;
 import com.slilio.xiaohashu.auth.model.vo.user.UserLoginReqVO;
 
 public interface UserService {
@@ -19,4 +20,12 @@ public interface UserService {
    * @return
    */
   Response<?> logout();
+
+  /**
+   * 修改密码
+   *
+   * @param updatePasswordReqVO
+   * @return
+   */
+  Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO);
 }
