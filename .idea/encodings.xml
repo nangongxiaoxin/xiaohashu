@@ -17,5 +17,11 @@
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-jackson/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-gateway/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/xiaohashu-oss-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/xiaohashu-oss-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/xiaohashu-oss-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-oss/xiaohashu-oss-biz/src/main/resources" charset="UTF-8" />
   </component>
 </project>
