@@ -12,6 +12,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class FileServiceImpl implements FileService {
   @Resource private FileStrategy fileStrategy;
+  private static final String BUCKET_NAME = "xiaohashu";
 
   /**
    * 文件上传
@@ -20,9 +21,9 @@ public class FileServiceImpl implements FileService {
    * @return
    */
   @Override
-  public Response<?> upload(MultipartFile file) {
+  public Response<?> uploadFile(MultipartFile file) {
     // 上传文件到哪里
-    fileStrategy.upload(file, "xiaohashu");
-    return Response.success();
+    String url = fileStrategy.uploadFile(file, BUCKET_NAME);
+    return Response.success(url);
   }
 }

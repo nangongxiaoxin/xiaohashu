@@ -20,6 +20,6 @@ public class FileController {
 
   @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public Response<?> uploadFile(@RequestPart(value = "file") MultipartFile file) {
-    return fileService.upload(file);
+    return fileService.uploadFile(file);
   }
 }
