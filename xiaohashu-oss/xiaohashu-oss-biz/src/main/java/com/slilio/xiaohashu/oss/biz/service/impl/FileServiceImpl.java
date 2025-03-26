@@ -12,7 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class FileServiceImpl implements FileService {
   @Resource private FileStrategy fileStrategy;
-  private static final String BUCKET_NAME = "xiaohashu";
+  private static final String BUCKET_NAME = "xiaohashu-176475";
+
+  //  private static final String BUCKET_NAME = "xiaohashu";
 
   /**
    * 文件上传
