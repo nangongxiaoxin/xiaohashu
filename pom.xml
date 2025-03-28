@@ -24,6 +24,8 @@
         <module>xiaohashu-gateway</module>
         <!-- 对象存储服务 -->
         <module>xiaohashu-oss</module>
+        <!-- 用户服务 -->
+        <module>xiaohashu-user</module>
     </modules>
 
     <properties>
