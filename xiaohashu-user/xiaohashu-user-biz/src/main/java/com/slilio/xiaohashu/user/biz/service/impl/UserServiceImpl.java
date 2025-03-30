@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.response.Response;
 import com.slilio.framework.common.util.ParamUtils;
+import com.slilio.xiaohashu.oss.api.FileFeignApi;
 import com.slilio.xiaohashu.user.biz.domain.dataobject.UserDO;
 import com.slilio.xiaohashu.user.biz.domain.mapper.UserDOMapper;
 import com.slilio.xiaohashu.user.biz.enums.ResponseCodeEnum;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class UserServiceImpl implements UserService {
   @Resource private UserDOMapper userDOMapper;
+  @Resource private FileFeignApi fileFeignApi;
 
   /**
    * 更新用户信息
@@ -43,6 +45,7 @@ public class UserServiceImpl implements UserService {
 
     if (Objects.nonNull(avatarFile)) {
       // todo 调用对象存储上传头像文件
+      fileFeignApi.test();
     }
 
     // 昵称

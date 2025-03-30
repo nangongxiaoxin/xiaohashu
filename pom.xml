@@ -245,6 +245,12 @@
                 <artifactId>jaxb-runtime</artifactId>
                 <version>${jaxb-runtime.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-oss-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

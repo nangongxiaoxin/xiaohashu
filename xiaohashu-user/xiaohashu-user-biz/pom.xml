@@ -75,6 +75,12 @@
             <groupId>com.slilio</groupId>
             <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
         </dependency>
+
+        <!--引入xiaohashu-oss-api 使用Feign调用接口-->
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-oss-api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
