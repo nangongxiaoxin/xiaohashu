@@ -8,6 +8,7 @@ import jakarta.annotation.Resource;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -16,16 +17,18 @@ public class MinioFileStrategy implements FileStrategy {
   @Resource private MinioProperties minioProperties;
   @Resource private MinioClient minioClient;
 
+  @Value("${storage.minio-bucket-name}")
+  private String bucketName;
+
   /**
    * 文件上传
    *
    * @param file
-   * @param bucketName
    * @return
    */
   @Override
   @SneakyThrows
-  public String uploadFile(MultipartFile file, String bucketName) {
+  public String uploadFile(MultipartFile file) {
     log.info("## 上传文件至 Minio 。。。");
     // 判断文件是否为空
     if (file == null || file.getSize() == 0) {

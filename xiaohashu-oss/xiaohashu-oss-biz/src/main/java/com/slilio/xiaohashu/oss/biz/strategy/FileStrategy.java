@@ -8,8 +8,7 @@ public interface FileStrategy {
    * 文件上传
    *
    * @param file
-   * @param bucketName
    * @return
    */
-  String uploadFile(MultipartFile file, String bucketName);
+  String uploadFile(MultipartFile file);
 }

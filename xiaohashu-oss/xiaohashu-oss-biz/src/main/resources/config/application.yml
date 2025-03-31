@@ -4,6 +4,13 @@ server:
 spring:
   profiles:
     active: dev # 默认激活 dev 本地开发环境
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 storage:
-  type: minio #对象存储类型
+  type: minio #对象存储类型 minio、aliyun
+  minio-bucket-name: xiaohashu #minio 存储桶名称
+  aliyun-bucket-name: xiaohashu-176475 #aliyun 存储桶名称
+

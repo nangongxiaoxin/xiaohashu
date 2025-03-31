@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.util.UUID;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -15,16 +16,18 @@ public class AliyunOSSFileStrategy implements FileStrategy {
   @Resource private AliyunOSSProperties aliyunOSSProperties;
   @Resource private OSS ossClient;
 
+  @Value("${storage.aliyun-bucket-name}")
+  private String bucketName;
+
   /**
    * 上传文件
    *
    * @param file
-   * @param bucketName
    * @return
    */
   @Override
   @SneakyThrows
-  public String uploadFile(MultipartFile file, String bucketName) {
+  public String uploadFile(MultipartFile file) {
     log.info("## 上传文件至 阿里云OSS 。。。");
 
     // 判断文件是否为空
