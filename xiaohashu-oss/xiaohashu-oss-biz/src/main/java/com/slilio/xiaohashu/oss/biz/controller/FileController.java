@@ -1,5 +1,6 @@
 package com.slilio.xiaohashu.oss.biz.controller;
 
+import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.oss.biz.service.FileService;
 import jakarta.annotation.Resource;
@@ -20,6 +21,8 @@ public class FileController {
 
   @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public Response<?> uploadFile(@RequestPart(value = "file") MultipartFile file) {
+    log.info("当前文件上传用户 ID: {}", LoginUserContextHolder.getUserId());
+
     return fileService.uploadFile(file);
   }
 }

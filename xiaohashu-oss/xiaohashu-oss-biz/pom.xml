@@ -86,7 +86,13 @@
             <groupId>com.slilio</groupId>
             <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
         </dependency>
-        
+
+        <!-- 上下文组件 -->
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-spring-boot-starter-biz-context</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>

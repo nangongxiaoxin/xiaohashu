@@ -1,1 +1,2 @@
 com.slilio.framework.biz.context.config.ContextAutoConfiguration
+com.slilio.framework.biz.context.config.FeignContextAutoConfiguration
