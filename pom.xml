@@ -76,6 +76,40 @@
                 <artifactId>xiaohashu-common</artifactId>
                 <version>${revision}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-user-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-oss-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 业务接口日志组件 -->
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-spring-boot-starter-biz-operationlog</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- Jackson 组件 -->
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <!-- 上下文组件 -->
+            <dependency>
+                <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-spring-boot-starter-biz-context</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
             <!-- Spring Boot 官方依赖管理 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -122,19 +156,6 @@
                 <version>${jackson.version}</version>
             </dependency>
 
-            <!-- 业务接口日志组件 -->
-            <dependency>
-                <groupId>com.slilio</groupId>
-                <artifactId>xiaohashu-spring-boot-starter-biz-operationlog</artifactId>
-                <version>${revision}</version>
-            </dependency>
-
-            <!-- Jackson 组件 -->
-            <dependency>
-                <groupId>com.slilio</groupId>
-                <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
-                <version>${revision}</version>
-            </dependency>
 
             <!-- Mybatis -->
             <dependency>
@@ -247,11 +268,6 @@
                 <version>${jaxb-runtime.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.slilio</groupId>
-                <artifactId>xiaohashu-oss-api</artifactId>
-                <version>${revision}</version>
-            </dependency>
 
             <!-- Feign 表单提交 -->
             <dependency>

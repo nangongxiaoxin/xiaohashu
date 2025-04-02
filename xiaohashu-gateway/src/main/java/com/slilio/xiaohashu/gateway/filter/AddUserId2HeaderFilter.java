@@ -22,9 +22,12 @@ public class AddUserId2HeaderFilter implements GlobalFilter {
     Long userId = null;
     try {
       // 获取当前登录用户的ID
+      // todo 登录不上
       userId = StpUtil.getLoginIdAsLong();
+      log.info("{}", StpUtil.getLoginIdAsLong());
     } catch (Exception e) {
       // 若没有登录
+      log.info("未登录，{}", e.getMessage());
       return chain.filter(exchange);
     }
     log.info("## 当前登录的用户ID：{}", userId);

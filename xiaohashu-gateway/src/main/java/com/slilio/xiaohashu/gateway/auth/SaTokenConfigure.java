@@ -48,6 +48,7 @@ public class SaTokenConfigure {
                 throw new NotLoginException(e.getMessage(), null, null);
               } else if (e instanceof NotPermissionException
                   || e instanceof NotRoleException) { // 权限不足或者不具备角色统一抛出权限不足
+
                 throw new NotPermissionException(e.getMessage());
               } else { // 其他异常，则抛出一个运行时异常
                 throw new RuntimeException(e.getMessage());

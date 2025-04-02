@@ -69,7 +69,6 @@
     <dependency>
       <groupId>com.slilio</groupId>
       <artifactId>xiaohashu-spring-boot-starter-biz-context</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
     </dependency>
   </dependencies>
   <build>
