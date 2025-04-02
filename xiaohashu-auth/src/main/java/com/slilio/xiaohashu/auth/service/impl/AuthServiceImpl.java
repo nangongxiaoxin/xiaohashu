@@ -7,18 +7,14 @@ import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.exception.BizException;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.auth.constant.RedisKeyConstants;
-import com.slilio.xiaohashu.auth.domain.dataobject.UserDO;
-import com.slilio.xiaohashu.auth.domain.mapper.RoleDOMapper;
-import com.slilio.xiaohashu.auth.domain.mapper.UserDOMapper;
-import com.slilio.xiaohashu.auth.domain.mapper.UserRoleDOMapper;
 import com.slilio.xiaohashu.auth.enums.LoginTypeEnum;
 import com.slilio.xiaohashu.auth.enums.ResponseCodeEnum;
 import com.slilio.xiaohashu.auth.model.vo.user.UpdatePasswordReqVO;
 import com.slilio.xiaohashu.auth.model.vo.user.UserLoginReqVO;
 import com.slilio.xiaohashu.auth.rpc.UserRpcService;
-import com.slilio.xiaohashu.auth.service.UserService;
+import com.slilio.xiaohashu.auth.service.AuthService;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
-import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -26,20 +22,15 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 @Slf4j
-public class UserServiceImpl implements UserService {
+public class AuthServiceImpl implements AuthService {
 
   @Resource(name = "taskExecutor")
   private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
-  @Resource private UserDOMapper userDOMapper;
   @Resource private RedisTemplate<String, Object> redisTemplate;
-  @Resource private UserRoleDOMapper userRoleDOMapper;
-  @Resource private TransactionTemplate transactionTemplate;
-  @Resource private RoleDOMapper roleDOMapper;
   @Resource private PasswordEncoder passwordEncoder;
   @Resource private UserRpcService userRpcService;
 
@@ -90,16 +81,17 @@ public class UserServiceImpl implements UserService {
         break;
       case PASSWORD: // 密码登录
         String password = userLoginReqVO.getPassword();
-        // 根据手机号查询
-        UserDO userDO1 = userDOMapper.selectByPhone(phone);
+
+        // RPC：调用用户服务，通过手机号查询用户
+        FindUserByPhoneRspDTO findUserByPhoneRspDTO = userRpcService.findUserByPhone(phone);
 
         // 判断该手机号是否注册
-        if (Objects.isNull(userDO1)) {
+        if (Objects.isNull(findUserByPhoneRspDTO)) {
           throw new BizException(ResponseCodeEnum.USER_NOT_FOUND); // 用户不存在
         }
 
         // 从数据库拿到密文密码
-        String encodePassword = userDO1.getPassword();
+        String encodePassword = findUserByPhoneRspDTO.getPassword();
 
         // 匹配密码是否一致
         boolean isPasswordCorrect = passwordEncoder.matches(password, encodePassword);
@@ -109,7 +101,7 @@ public class UserServiceImpl implements UserService {
           throw new BizException(ResponseCodeEnum.PHONE_OR_PASSWORD_ERROR); // 密码或手机号错误
         }
 
-        userId = userDO1.getId();
+        userId = findUserByPhoneRspDTO.getId();
 
         break;
       default:
@@ -159,18 +151,8 @@ public class UserServiceImpl implements UserService {
     // 密码加密
     String encodePassword = passwordEncoder.encode(newPassword);
 
-    // 获取当前用户请求的ID
-    Long userId = LoginUserContextHolder.getUserId();
-
-    UserDO userDO =
-        UserDO.builder()
-            .id(userId)
-            .password(encodePassword)
-            .updateTime(LocalDateTime.now())
-            .build();
-
-    // 更新密码
-    userDOMapper.updateByPrimaryKeySelective(userDO);
+    // RPC：调用用户服务：更新密码
+    userRpcService.updatePassword(encodePassword);
 
     return Response.success();
   }

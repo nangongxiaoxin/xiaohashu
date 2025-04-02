@@ -21,7 +21,10 @@ import com.slilio.xiaohashu.user.biz.enums.SexEnum;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.rpc.OssRpcService;
 import com.slilio.xiaohashu.user.biz.service.UserService;
+import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
+import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -121,7 +124,6 @@ public class UserServiceImpl implements UserService {
     // 背景图
     MultipartFile backgroundImg = updateUserInfoReqVO.getBackgroundImg();
     if (Objects.nonNull(backgroundImg)) {
-      // todo 调用对象存储上传文件
       String background = ossRpcService.uploadFile(backgroundImg);
       log.info("===> 调用oss服务成功，上传背景图，url：{}", background);
 
@@ -206,5 +208,56 @@ public class UserServiceImpl implements UserService {
     redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
 
     return Response.success(userId);
+  }
+
+  /**
+   * 根据手机号查询信息
+   *
+   * @param findUserByPhoneReqDTO
+   * @return
+   */
+  @Override
+  public Response<FindUserByPhoneRspDTO> findByPhone(FindUserByPhoneReqDTO findUserByPhoneReqDTO) {
+    String phone = findUserByPhoneReqDTO.getPhone();
+
+    // 根据手机号查询用户信息
+    UserDO userDO = userDOMapper.selectByPhone(phone);
+
+    // 判空
+    if (Objects.isNull(userDO)) {
+      throw new BizException(ResponseCodeEnum.USER_NOT_FOUNT);
+    }
+
+    // 构建返参
+    FindUserByPhoneRspDTO findUserByPhoneRspDTO =
+        FindUserByPhoneRspDTO.builder().id(userDO.getId()).password(userDO.getPassword()).build();
+
+    return Response.success(findUserByPhoneRspDTO);
+  }
+
+  /**
+   * 更新密码
+   *
+   * @param updateUserPasswordReqDTO
+   * @return
+   */
+  @Override
+  public Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
+    // 获取当前的用户ID
+    Long userId = LoginUserContextHolder.getUserId();
+
+    if (Objects.isNull(userId)) {
+      throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+    }
+
+    UserDO userDO =
+        UserDO.builder()
+            .id(userId)
+            .password(updateUserPasswordReqDTO.getEncodePassword()) // 加密后的密码
+            .updateTime(LocalDateTime.now())
+            .build();
+    // 更新密码
+    userDOMapper.updateByPrimaryKeySelective(userDO);
+    return Response.success();
   }
 }

@@ -4,7 +4,7 @@ import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.auth.model.vo.user.UpdatePasswordReqVO;
 import com.slilio.xiaohashu.auth.model.vo.user.UserLoginReqVO;
 
-public interface UserService {
+public interface AuthService {
   /**
    * 登录与注册
    *

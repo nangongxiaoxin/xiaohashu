@@ -2,7 +2,10 @@ package com.slilio.xiaohashu.user.biz.service;
 
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
+import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
+import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 
 public interface UserService {
   /**
@@ -20,4 +23,20 @@ public interface UserService {
    * @return
    */
   Response<Long> register(RegisterUserReqDTO registerUserReqDTO);
+
+  /**
+   * 根据手机号查询用户信息
+   *
+   * @param findUserByPhoneReqDTO
+   * @return
+   */
+  Response<FindUserByPhoneRspDTO> findByPhone(FindUserByPhoneReqDTO findUserByPhoneReqDTO);
+
+  /**
+   * 更新密码
+   *
+   * @param updateUserPasswordReqDTO
+   * @return
+   */
+  Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO);
 }

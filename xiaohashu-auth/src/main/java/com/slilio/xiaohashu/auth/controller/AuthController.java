@@ -4,7 +4,7 @@ import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.auth.model.vo.user.UpdatePasswordReqVO;
 import com.slilio.xiaohashu.auth.model.vo.user.UserLoginReqVO;
-import com.slilio.xiaohashu.auth.service.UserService;
+import com.slilio.xiaohashu.auth.service.AuthService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping
 @Slf4j
-public class UserController {
-  @Resource private UserService userService;
+public class AuthController {
+  @Resource private AuthService userService;
 
   @PostMapping("/login")
   @ApiOperationLog(description = "用户登录/注册")

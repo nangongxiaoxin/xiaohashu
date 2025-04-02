@@ -1,11 +1,5 @@
 package com.slilio.xiaohashu.gateway.constant;
 
-/**
- * @author: 犬小哈
- * @date: 2024/5/21 15:04
- * @version: v1.0.0
- * @description: TODO
- */
 public class RedisKeyConstants {
 
   /** 用户角色数据 KEY 前缀 */

@@ -4,7 +4,10 @@ import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.service.UserService;
+import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
+import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -30,5 +33,19 @@ public class UserController {
   @ApiOperationLog(description = "用户注册")
   public Response<Long> register(@Validated @RequestBody RegisterUserReqDTO registerUserReqDTO) {
     return userService.register(registerUserReqDTO);
+  }
+
+  @PostMapping("/findByPhone")
+  @ApiOperationLog(description = "手机号查询用户信息")
+  public Response<FindUserByPhoneRspDTO> findByPhone(
+      @Validated @RequestBody FindUserByPhoneReqDTO findUserByPhoneReqDTO) {
+    return userService.findByPhone(findUserByPhoneReqDTO);
+  }
+
+  @PostMapping("/password/update")
+  @ApiOperationLog(description = "更新密码")
+  public Response<?> updatePassword(
+      @Validated @RequestBody UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
+    return userService.updatePassword(updateUserPasswordReqDTO);
   }
 }
