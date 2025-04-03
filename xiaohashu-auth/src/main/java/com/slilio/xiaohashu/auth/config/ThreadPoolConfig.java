@@ -1,6 +1,5 @@
 package com.slilio.xiaohashu.auth.config;
 
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,7 +13,7 @@ public class ThreadPoolConfig {
    * @return
    */
   @Bean(name = "taskExecutor")
-  public Executor taskExecutor() {
+  public ThreadPoolTaskExecutor taskExecutor() {
     ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
     // 核心线程数
     executor.setCorePoolSize(10);
