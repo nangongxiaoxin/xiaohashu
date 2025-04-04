@@ -40,7 +40,7 @@ public class CassandraTests {
   @Test
   void testSelect() {
     Optional<NoteContentDO> optional =
-        noteContentRepository.findById(UUID.fromString("9a828a20-128e-453f-b995-22e75b8dfcee"));
+        noteContentRepository.findById(UUID.fromString("2d1967f5-1bbe-4772-a1e8-49452e376d12"));
 
     optional.ifPresent(noteContentDO -> log.info("查询结果：{}", JsonUtils.toJsonString(noteContentDO)));
   }
