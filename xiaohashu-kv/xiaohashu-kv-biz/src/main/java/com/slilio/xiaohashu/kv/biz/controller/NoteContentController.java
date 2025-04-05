@@ -3,6 +3,7 @@ package com.slilio.xiaohashu.kv.biz.controller;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.kv.biz.service.NoteContentService;
 import com.slilio.xiaohashu.kv.dto.req.AddNoteContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.FindNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import jakarta.annotation.Resource;
@@ -42,5 +43,17 @@ public class NoteContentController {
   public Response<FindNoteContentRspDTO> findNoteContent(
       @Validated @RequestBody FindNoteContentReqDTO findNoteContentReqDTO) {
     return noteContentService.findNoteContent(findNoteContentReqDTO);
+  }
+
+  /**
+   * 删除笔记内容
+   *
+   * @param deleteNoteContentReqDTO
+   * @return
+   */
+  @PostMapping(value = "/note/content/delete")
+  public Response<?> deleteNoteContent(
+      @Validated @RequestBody DeleteNoteContentReqDTO deleteNoteContentReqDTO) {
+    return noteContentService.deleteNoteContent(deleteNoteContentReqDTO);
   }
 }

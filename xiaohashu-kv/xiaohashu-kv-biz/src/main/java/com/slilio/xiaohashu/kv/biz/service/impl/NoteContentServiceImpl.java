@@ -7,6 +7,7 @@ import com.slilio.xiaohashu.kv.biz.domain.repository.NoteContentRepository;
 import com.slilio.xiaohashu.kv.biz.enums.ResponseCodeEnum;
 import com.slilio.xiaohashu.kv.biz.service.NoteContentService;
 import com.slilio.xiaohashu.kv.dto.req.AddNoteContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.FindNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import jakarta.annotation.Resource;
@@ -72,5 +73,21 @@ public class NoteContentServiceImpl implements NoteContentService {
             .build();
 
     return Response.success(findNoteContentRspDTO);
+  }
+
+  /**
+   * 删除笔记内容
+   *
+   * @param deleteNoteContentReqDTO
+   * @return
+   */
+  @Override
+  public Response<?> deleteNoteContent(DeleteNoteContentReqDTO deleteNoteContentReqDTO) {
+    // 笔记ID
+    String noteId = deleteNoteContentReqDTO.getNoteId();
+    // 删除笔记内容
+    noteContentRepository.deleteById(UUID.fromString(noteId));
+
+    return Response.success();
   }
 }

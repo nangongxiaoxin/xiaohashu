@@ -2,6 +2,7 @@ package com.slilio.xiaohashu.kv.biz.service;
 
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.kv.dto.req.AddNoteContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.FindNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 
@@ -21,4 +22,12 @@ public interface NoteContentService {
    * @return
    */
   Response<FindNoteContentRspDTO> findNoteContent(FindNoteContentReqDTO findNoteContentReqDTO);
+
+  /**
+   * 删除笔记内容
+   *
+   * @param deleteNoteContentReqDTO
+   * @return
+   */
+  Response<?> deleteNoteContent(DeleteNoteContentReqDTO deleteNoteContentReqDTO);
 }

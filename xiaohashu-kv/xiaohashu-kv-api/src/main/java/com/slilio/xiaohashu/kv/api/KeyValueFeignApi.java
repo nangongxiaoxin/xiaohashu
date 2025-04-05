@@ -3,6 +3,7 @@ package com.slilio.xiaohashu.kv.api;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.kv.constant.ApiConstants;
 import com.slilio.xiaohashu.kv.dto.req.AddNoteContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.FindNoteContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.rsp.FindNoteContentRspDTO;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -18,5 +19,9 @@ public interface KeyValueFeignApi {
   Response<?> addNoteContent(@RequestBody AddNoteContentReqDTO addNoteContentReqDTO);
 
   @PostMapping(value = PREFIX + "/note/content/find")
-  Response<FindNoteContentRspDTO> findNoteContent(@RequestBody FindNoteContentReqDTO findNoteContentReqDTO);
+  Response<FindNoteContentRspDTO> findNoteContent(
+      @RequestBody FindNoteContentReqDTO findNoteContentReqDTO);
+
+  @PostMapping(value = PREFIX + "/note/content/delete")
+  Response<?> deleteNoteContent(@RequestBody DeleteNoteContentReqDTO deleteNoteContentReqDTO);
 }
