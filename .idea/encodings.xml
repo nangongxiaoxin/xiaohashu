@@ -5,6 +5,12 @@
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-auth/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-auth/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/xiaohashu-distributed-id-generator-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/xiaohashu-distributed-id-generator-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/xiaohashu-distributed-id-generator-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-distributed-id-generator/xiaohashu-distributed-id-generator-biz/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/src/main/java" charset="UTF-8" />
