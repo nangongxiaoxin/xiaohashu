@@ -75,6 +75,13 @@
         <dependencies>
             <dependency>
                 <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.slilio</groupId>
                 <artifactId>xiaohashu-kv-api</artifactId>
                 <version>${revision}</version>
             </dependency>

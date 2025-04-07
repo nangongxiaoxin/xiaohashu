@@ -19,6 +19,7 @@ import com.slilio.xiaohashu.user.biz.domain.mapper.UserRoleDOMapper;
 import com.slilio.xiaohashu.user.biz.enums.ResponseCodeEnum;
 import com.slilio.xiaohashu.user.biz.enums.SexEnum;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
+import com.slilio.xiaohashu.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.user.biz.rpc.OssRpcService;
 import com.slilio.xiaohashu.user.biz.service.UserService;
 import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
   @Resource private OssRpcService ossRpcService;
   @Resource private UserRoleDOMapper userRoleDOMapper;
   @Resource private RoleDOMapper roleDOMapper;
+  @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
   @Resource private RedisTemplate<String, Object> redisTemplate;
 
   /**
@@ -167,11 +169,19 @@ public class UserServiceImpl implements UserService {
 
     // 否则注册新用户
     // 获取全局自增的小哈书 ID
-    Long xiaohashuId =
-        redisTemplate.opsForValue().increment(RedisKeyConstants.XIAOHASHU_ID_GENERATOR_KEY);
+    //    Long xiaohashuId =
+    // redisTemplate.opsForValue().increment(RedisKeyConstants.XIAOHASHU_ID_GENERATOR_KEY);
+
+    // RPC：调用分布式ID生成服务生成小哈书ID
+    String xiaohashuId = distributedIdGeneratorRpcService.getXiaohashuId();
+
+    // RPC：调用分布式ID生成服务生成用户ID
+    String userIdStr = distributedIdGeneratorRpcService.getUserId();
+    Long userId = Long.valueOf(userIdStr);
 
     UserDO userDO =
         UserDO.builder()
+            .id(userId)
             .phone(phone)
             .xiaohashuId(String.valueOf(xiaohashuId)) // 自动生成小红书号 ID
             .nickname("小红薯" + xiaohashuId) // 自动生成昵称, 如：小红薯10000
@@ -185,7 +195,7 @@ public class UserServiceImpl implements UserService {
     userDOMapper.insert(userDO);
 
     // 获取刚刚添加入库的用户 ID
-    Long userId = userDO.getId();
+    //    Long userId = userDO.getId();
 
     // 给该用户分配一个默认角色
     UserRoleDO userRoleDO =
