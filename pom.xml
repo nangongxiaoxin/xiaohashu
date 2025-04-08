@@ -29,6 +29,7 @@
         <!-- kv键值存储服务 -->
         <module>xiaohashu-kv</module>
         <module>xiaohashu-distributed-id-generator</module>
+        <module>xiaohashu-note</module>
     </modules>
 
     <properties>
