@@ -15,6 +15,16 @@
 
 
     <dependencies>
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-kv-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+        </dependency>
+
         <!-- Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

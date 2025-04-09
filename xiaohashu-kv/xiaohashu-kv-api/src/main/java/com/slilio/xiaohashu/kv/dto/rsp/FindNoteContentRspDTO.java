@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FindNoteContentRspDTO {
 
-  private UUID noteId; // 笔记ID
+  private UUID uuid; // 笔记uuid
   private String content; // 笔记内容
 }

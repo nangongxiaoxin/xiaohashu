@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class FindNoteContentReqDTO {
 
-  @NotBlank(message = "笔记ID不能为空")
-  private String noteId;
+  @NotBlank(message = "笔记UUID不能为空")
+  private String uuid;
 }
