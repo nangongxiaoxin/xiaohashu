@@ -4,9 +4,11 @@ import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.service.UserService;
+import com.slilio.xiaohashu.user.dto.req.FindUserByIdReqDTO;
 import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
 import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -47,5 +49,12 @@ public class UserController {
   public Response<?> updatePassword(
       @Validated @RequestBody UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
     return userService.updatePassword(updateUserPasswordReqDTO);
+  }
+
+  @PostMapping("/findById")
+  @ApiOperationLog(description = "Id查询用户信息")
+  public Response<FindUserByIdRspDTO> findById(
+      @Validated @RequestBody FindUserByIdReqDTO findUserByIdReqDTO) {
+    return userService.findById(findUserByIdReqDTO);
   }
 }

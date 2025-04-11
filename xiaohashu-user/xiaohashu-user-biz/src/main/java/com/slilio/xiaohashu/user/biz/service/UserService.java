@@ -2,9 +2,11 @@ package com.slilio.xiaohashu.user.biz.service;
 
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
+import com.slilio.xiaohashu.user.dto.req.FindUserByIdReqDTO;
 import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
 import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 
 public interface UserService {
@@ -39,4 +41,12 @@ public interface UserService {
    * @return
    */
   Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO);
+
+  /**
+   * 根据用户ID查询用户信息
+   *
+   * @param findUserByIdReqDTO
+   * @return
+   */
+  Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO);
 }

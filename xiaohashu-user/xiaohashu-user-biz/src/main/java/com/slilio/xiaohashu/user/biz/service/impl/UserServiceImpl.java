@@ -22,9 +22,11 @@ import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.user.biz.rpc.OssRpcService;
 import com.slilio.xiaohashu.user.biz.service.UserService;
+import com.slilio.xiaohashu.user.dto.req.FindUserByIdReqDTO;
 import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
 import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
 import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDate;
@@ -269,5 +271,34 @@ public class UserServiceImpl implements UserService {
     // 更新密码
     userDOMapper.updateByPrimaryKeySelective(userDO);
     return Response.success();
+  }
+
+  /**
+   * 根据用户ID查询用户
+   *
+   * @param findUserByIdReqDTO
+   * @return
+   */
+  @Override
+  public Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO) {
+    Long userId = findUserByIdReqDTO.getId();
+
+    // 根据用户ID查询用户信息
+    UserDO userDO = userDOMapper.selectByPrimaryKey(userId);
+
+    // 判空
+    if (Objects.isNull(userDO)) {
+      throw new BizException(ResponseCodeEnum.USER_NOT_FOUNT);
+    }
+
+    // 构建返参
+    FindUserByIdRspDTO findUserByIdRspDTO =
+        FindUserByIdRspDTO.builder()
+            .id(userDO.getId())
+            .nickName(userDO.getNickname())
+            .avatar(userDO.getAvatar())
+            .build();
+
+    return Response.success(findUserByIdRspDTO);
   }
 }
