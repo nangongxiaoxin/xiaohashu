@@ -1,10 +1,15 @@
 package com.slilio.xiaohashu.note.biz.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.exception.BizException;
 import com.slilio.framework.common.response.Response;
+import com.slilio.framework.common.util.JsonUtils;
+import com.slilio.xiaohashu.note.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.note.biz.domain.dataobject.NoteDO;
 import com.slilio.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.slilio.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
@@ -25,8 +30,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -37,6 +47,19 @@ public class NoteServiceImpl implements NoteService {
   @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
   @Resource private KeyValueRpcService keyValueRpcService;
   @Resource private UserRpcService userRpcService;
+
+  @Resource(name = "taskExecutor")
+  private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+
+  @Resource private RedisTemplate<String, String> redisTemplate;
+
+  /** 笔记详情本地缓存 */
+  private static final Cache<Long, String> LOCAL_CACHE =
+      Caffeine.newBuilder()
+          .initialCapacity(10000) // 设置初始缓存容量为10000个条目
+          .maximumSize(10000) // 设置缓存的最大容量为10000个条目
+          .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存的条目在写入后一个小时过期
+          .build();
 
   /**
    * 笔记发布
@@ -159,6 +182,7 @@ public class NoteServiceImpl implements NoteService {
    * @return
    */
   @Override
+  @SneakyThrows
   public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
     // 查询的笔记ID
     Long noteId = findNoteDetailReqVO.getId();
@@ -166,11 +190,59 @@ public class NoteServiceImpl implements NoteService {
     // 当前登录用户
     Long userId = LoginUserContextHolder.getUserId();
 
+    // 先从本地缓存中查询
+    String findNoteDetailRspVOStrLocalCache = LOCAL_CACHE.getIfPresent(noteId);
+    if (StringUtils.isNotBlank(findNoteDetailRspVOStrLocalCache)) {
+      FindNoteDetailRspVO findNoteDetailRspVO =
+          JsonUtils.parseObject(findNoteDetailRspVOStrLocalCache, FindNoteDetailRspVO.class);
+      log.info("===》 命中了本地缓存；{}", findNoteDetailRspVOStrLocalCache);
+      // 可见性校验
+      checkNoteVisibleFromVO(userId, findNoteDetailRspVO);
+      return Response.success(findNoteDetailRspVO);
+    }
+
+    // 从redis缓存中读取
+    String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+    String noteDetailJson = redisTemplate.opsForValue().get(noteDetailRedisKey);
+
+    // 若缓存中有该笔记，则直接返回
+    if (StringUtils.isNotBlank(noteDetailJson)) {
+      FindNoteDetailRspVO findNoteDetailRspVO =
+          JsonUtils.parseObject(noteDetailJson, FindNoteDetailRspVO.class);
+      // 异步线程将用户信息存入本地缓存
+      threadPoolTaskExecutor.submit(
+          () -> {
+            // 写入本地缓存
+            LOCAL_CACHE.put(
+                noteId,
+                Objects.isNull(findNoteDetailRspVO)
+                    ? "null"
+                    : JsonUtils.toJsonString(findNoteDetailRspVO));
+          });
+
+      // 可见性校验
+      if (Objects.nonNull(findNoteDetailRspVO)) {
+        Integer visible = findNoteDetailRspVO.getVisible();
+        checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
+      }
+      return Response.success(findNoteDetailRspVO);
+    }
+
+    // 若Redis获取不到，则走数据库查询
     // 查询笔记
     NoteDO noteDO = noteDOMapper.selectByPrimaryKey(noteId);
 
     // 若该笔记不存在则抛出业务异常
     if (Objects.isNull(noteDO)) {
+      threadPoolTaskExecutor.execute(
+          () -> {
+            // 防止缓存穿透，将空数据存入redis缓存（过期时间不宜过长）
+            // 保底1分钟+随机秒数
+            long expireSeconds = 60 + RandomUtil.randomInt(60);
+            redisTemplate
+                .opsForValue()
+                .set(noteDetailRedisKey, "null", expireSeconds, TimeUnit.SECONDS);
+          });
       throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
     }
 
@@ -178,47 +250,86 @@ public class NoteServiceImpl implements NoteService {
     Integer visible = noteDO.getVisible();
     checkNoteVisible(visible, userId, noteDO.getCreatorId());
 
+    // 并发查询优化
     // RPC：调用用户服务
     Long creatorId = noteDO.getCreatorId();
-    FindUserByIdRspDTO findUserByIdRspDTO = userRpcService.findById(userId);
+    CompletableFuture<FindUserByIdRspDTO> userResultFuture =
+        CompletableFuture.supplyAsync(
+            () -> userRpcService.findById(creatorId), threadPoolTaskExecutor);
 
     // RPC：调用K-V存储服务获取内容
-    String content = null;
+    CompletableFuture<String> contentResultFuture = CompletableFuture.completedFuture(null);
     if (Objects.equals(noteDO.getIsContentEmpty(), Boolean.FALSE)) {
-      content = keyValueRpcService.findNoteContent(noteDO.getContentUuid());
+      contentResultFuture =
+          CompletableFuture.supplyAsync(
+              () -> keyValueRpcService.findNoteContent(noteDO.getContentUuid()),
+              threadPoolTaskExecutor);
     }
+    CompletableFuture<String> finalContentResultFuture = contentResultFuture;
 
-    // 笔记类型
-    Integer noteType = noteDO.getType();
-    // 图文笔记链接（字符串）
-    String imgUrisStr = noteDO.getImgUris();
-    // 图文笔记链接集合
-    List<String> imgUris = null;
-    // 如果查询的是图文笔记，需要将图片链接的逗号分隔开，转换为集合
-    if (Objects.equals(noteType, NoteTypeEnum.IMAGE_TEXT.getCode())
-        && StringUtils.isNotBlank(imgUrisStr)) {
-      imgUris = List.of(imgUrisStr.split(","));
-    }
+    CompletableFuture<FindNoteDetailRspVO> resultFuture =
+        CompletableFuture.allOf(
+                userResultFuture, contentResultFuture) // 再创建CompletableFuture用于等待userResultFuture,
+            // contentResultFuture全部完成
+            .thenApply(
+                s -> {
+                  // 获取Future返回的结果
+                  FindUserByIdRspDTO findUserByIdRspDTO = userResultFuture.join();
+                  String content = finalContentResultFuture.join();
 
-    // 构建返参VO实体类
-    FindNoteDetailRspVO findNoteDetailRspVO =
-        FindNoteDetailRspVO.builder()
-            .id(noteDO.getId())
-            .type(noteDO.getType())
-            .title(noteDO.getTitle())
-            .content(content)
-            .imgUris(imgUris)
-            .topicId(noteDO.getTopicId())
-            .topicName(noteDO.getTopicName())
-            .creatorId(noteDO.getCreatorId())
-            .creatorName(findUserByIdRspDTO.getNickName())
-            .avatar(findUserByIdRspDTO.getAvatar())
-            .videoUri(noteDO.getVideoUri())
-            .updateTime(noteDO.getUpdateTime())
-            .visible(noteDO.getVisible())
-            .build();
+                  // 笔记类型
+                  Integer noteType = noteDO.getType();
+                  // 图文笔记链接（字符串）
+                  String imgUrisStr = noteDO.getImgUris();
+                  // 图文笔记链接集合
+                  List<String> imgUris = null;
+                  // 如果查询的是图文笔记，需要将图片链接的逗号分隔开，转换为集合
+                  if (Objects.equals(noteType, NoteTypeEnum.IMAGE_TEXT.getCode())
+                      && StringUtils.isNotBlank(imgUrisStr)) {
+                    imgUris = List.of(imgUrisStr.split(","));
+                  }
+
+                  // 构建返参VO实体类
+                  return FindNoteDetailRspVO.builder()
+                      .id(noteDO.getId())
+                      .type(noteDO.getType())
+                      .title(noteDO.getTitle())
+                      .content(content)
+                      .imgUris(imgUris)
+                      .topicId(noteDO.getTopicId())
+                      .topicName(noteDO.getTopicName())
+                      .creatorId(noteDO.getCreatorId())
+                      .creatorName(findUserByIdRspDTO.getNickName())
+                      .avatar(findUserByIdRspDTO.getAvatar())
+                      .videoUri(noteDO.getVideoUri())
+                      .updateTime(noteDO.getUpdateTime())
+                      .visible(noteDO.getVisible())
+                      .build();
+                });
+
+    // 获取拼装后的FindNoteDetailRspVO
+    FindNoteDetailRspVO findNoteDetailRspVO = resultFuture.get();
+
+    // 异步将笔记详情存入redis
+    threadPoolTaskExecutor.submit(
+        () -> {
+          String noteDetailJson1 = JsonUtils.toJsonString(findNoteDetailRspVO);
+          // 过期时间（保底1天 + 随机秒数，将缓存过期时间打散，防止同一时间大量缓存失效，导致数据库压力太大）
+          long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+          redisTemplate
+              .opsForValue()
+              .set(noteDetailRedisKey, noteDetailJson1, expireSeconds, TimeUnit.SECONDS);
+        });
 
     return Response.success(findNoteDetailRspVO);
+  }
+
+  /** 笔记可见性校验，针对vo实体类 */
+  private void checkNoteVisibleFromVO(Long userId, FindNoteDetailRspVO findNoteDetailRspVO) {
+    if (Objects.nonNull(findNoteDetailRspVO)) {
+      Integer visible = findNoteDetailRspVO.getVisible();
+      checkNoteVisible(visible, userId, findNoteDetailRspVO.getCreatorId());
+    }
   }
 
   /**
