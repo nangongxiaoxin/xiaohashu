@@ -12,10 +12,14 @@ import com.slilio.xiaohashu.note.biz.enums.NoteStatusEnum;
 import com.slilio.xiaohashu.note.biz.enums.NoteTypeEnum;
 import com.slilio.xiaohashu.note.biz.enums.NoteVisibleEnum;
 import com.slilio.xiaohashu.note.biz.enums.ResponseCodeEnum;
+import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
+import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.slilio.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
 import com.slilio.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.note.biz.rpc.KeyValueRpcService;
+import com.slilio.xiaohashu.note.biz.rpc.UserRpcService;
 import com.slilio.xiaohashu.note.biz.service.NoteService;
+import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +36,7 @@ public class NoteServiceImpl implements NoteService {
   @Resource private TopicDOMapper topicDOMapper;
   @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
   @Resource private KeyValueRpcService keyValueRpcService;
+  @Resource private UserRpcService userRpcService;
 
   /**
    * 笔记发布
@@ -145,5 +150,88 @@ public class NoteServiceImpl implements NoteService {
     }
 
     return Response.success();
+  }
+
+  /**
+   * 笔记详情
+   *
+   * @param findNoteDetailReqVO
+   * @return
+   */
+  @Override
+  public Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO) {
+    // 查询的笔记ID
+    Long noteId = findNoteDetailReqVO.getId();
+
+    // 当前登录用户
+    Long userId = LoginUserContextHolder.getUserId();
+
+    // 查询笔记
+    NoteDO noteDO = noteDOMapper.selectByPrimaryKey(noteId);
+
+    // 若该笔记不存在则抛出业务异常
+    if (Objects.isNull(noteDO)) {
+      throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+    }
+
+    // 可见性校验
+    Integer visible = noteDO.getVisible();
+    checkNoteVisible(visible, userId, noteDO.getCreatorId());
+
+    // RPC：调用用户服务
+    Long creatorId = noteDO.getCreatorId();
+    FindUserByIdRspDTO findUserByIdRspDTO = userRpcService.findById(userId);
+
+    // RPC：调用K-V存储服务获取内容
+    String content = null;
+    if (Objects.equals(noteDO.getIsContentEmpty(), Boolean.FALSE)) {
+      content = keyValueRpcService.findNoteContent(noteDO.getContentUuid());
+    }
+
+    // 笔记类型
+    Integer noteType = noteDO.getType();
+    // 图文笔记链接（字符串）
+    String imgUrisStr = noteDO.getImgUris();
+    // 图文笔记链接集合
+    List<String> imgUris = null;
+    // 如果查询的是图文笔记，需要将图片链接的逗号分隔开，转换为集合
+    if (Objects.equals(noteType, NoteTypeEnum.IMAGE_TEXT.getCode())
+        && StringUtils.isNotBlank(imgUrisStr)) {
+      imgUris = List.of(imgUrisStr.split(","));
+    }
+
+    // 构建返参VO实体类
+    FindNoteDetailRspVO findNoteDetailRspVO =
+        FindNoteDetailRspVO.builder()
+            .id(noteDO.getId())
+            .type(noteDO.getType())
+            .title(noteDO.getTitle())
+            .content(content)
+            .imgUris(imgUris)
+            .topicId(noteDO.getTopicId())
+            .topicName(noteDO.getTopicName())
+            .creatorId(noteDO.getCreatorId())
+            .creatorName(findUserByIdRspDTO.getNickName())
+            .avatar(findUserByIdRspDTO.getAvatar())
+            .videoUri(noteDO.getVideoUri())
+            .updateTime(noteDO.getUpdateTime())
+            .visible(noteDO.getVisible())
+            .build();
+
+    return Response.success(findNoteDetailRspVO);
+  }
+
+  /**
+   * 笔记可见性校验
+   *
+   * @param visible
+   * @param userId
+   * @param creatorId
+   */
+  private void checkNoteVisible(Integer visible, Long userId, Long creatorId) {
+    if (Objects.equals(visible, NoteVisibleEnum.PRIVATE.getCode())
+        && !Objects.equals(userId, creatorId)) {
+      throw new BizException(ResponseCodeEnum.NOTE_PRIVATE);
+    }
   }
 }

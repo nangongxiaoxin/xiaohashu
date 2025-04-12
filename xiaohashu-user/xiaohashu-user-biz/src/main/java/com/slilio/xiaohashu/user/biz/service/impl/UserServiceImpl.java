@@ -1,6 +1,8 @@
 package com.slilio.xiaohashu.user.biz.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
 import com.slilio.framework.common.enums.DeletedEnum;
@@ -56,6 +58,14 @@ public class UserServiceImpl implements UserService {
 
   @Resource(name = "taskExecutor")
   private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+
+  /** 用户信息本地缓存 */
+  private static final Cache<Long, FindUserByIdRspDTO> LOCAL_CACHE =
+      Caffeine.newBuilder()
+          .initialCapacity(10000) // 设置初始容量为10000个条目
+          .maximumSize(10000) // 设置缓存的最大容量为10000个条目
+          .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在1小时后过期
+          .build();
 
   /**
    * 更新用户信息
@@ -289,6 +299,13 @@ public class UserServiceImpl implements UserService {
   public Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO) {
     Long userId = findUserByIdReqDTO.getId();
 
+    // 先从本地缓存中查询
+    FindUserByIdRspDTO findUserByIdRspDTOLocalCache = LOCAL_CACHE.getIfPresent(userId);
+    if (Objects.nonNull(findUserByIdRspDTOLocalCache)) {
+      log.info("===> 命中了本地缓存；{}", findUserByIdRspDTOLocalCache);
+      return Response.success(findUserByIdRspDTOLocalCache);
+    }
+
     // 用户缓存Redis key 名称
     String userInfoRedisKey = RedisKeyConstants.buildUserInfoKey(userId);
     // 先从redis缓存中查询
@@ -299,6 +316,14 @@ public class UserServiceImpl implements UserService {
       // 将存储的json字符串转换为对象，并返回
       FindUserByIdRspDTO findUserByIdRspDTO =
           JsonUtils.parseObject(userInfoRedisValue, FindUserByIdRspDTO.class);
+      // 异步线程中将以用户信息存入本地缓存
+      threadPoolTaskExecutor.submit(
+          () -> {
+            if (Objects.nonNull(findUserByIdRspDTO)) {
+              // 写入本地缓存
+              LOCAL_CACHE.put(userId, findUserByIdRspDTO);
+            }
+          });
       return Response.success(findUserByIdRspDTO);
     }
 

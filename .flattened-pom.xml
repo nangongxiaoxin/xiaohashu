@@ -14,6 +14,9 @@
     <module>xiaohashu-gateway</module>
     <module>xiaohashu-oss</module>
     <module>xiaohashu-user</module>
+    <module>xiaohashu-kv</module>
+    <module>xiaohashu-distributed-id-generator</module>
+    <module>xiaohashu-note</module>
   </modules>
   <properties>
     <minio.version>8.2.1</minio.version>
@@ -31,6 +34,7 @@
     <mybatis-generator-maven-plugin.version>1.3.5</mybatis-generator-maven-plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <commons-lang3.version>3.12.0</commons-lang3.version>
+    <caffeine.version>3.1.8</caffeine.version>
     <java.version>17</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
@@ -47,6 +51,16 @@
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.slilio</groupId>
+        <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.slilio</groupId>
+        <artifactId>xiaohashu-kv-api</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
       <dependency>
         <groupId>com.slilio</groupId>
         <artifactId>xiaohashu-common</artifactId>
@@ -202,6 +216,11 @@
         <groupId>io.github.openfeign.form</groupId>
         <artifactId>feign-form</artifactId>
         <version>${feign-form.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.ben-manes.caffeine</groupId>
+        <artifactId>caffeine</artifactId>
+        <version>${caffeine.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -17,6 +17,11 @@
     <dependencies>
         <dependency>
             <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-user-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.slilio</groupId>
             <artifactId>xiaohashu-kv-api</artifactId>
         </dependency>
 
