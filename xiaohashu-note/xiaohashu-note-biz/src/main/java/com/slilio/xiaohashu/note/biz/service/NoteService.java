@@ -4,6 +4,7 @@ import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
 import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
 import com.slilio.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
+import com.slilio.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
 
 public interface NoteService {
   /**
@@ -21,4 +22,19 @@ public interface NoteService {
    * @return
    */
   Response<FindNoteDetailRspVO> findNoteDetail(FindNoteDetailReqVO findNoteDetailReqVO);
+
+  /**
+   * 笔记更新
+   *
+   * @param updateNoteReqVO
+   * @return
+   */
+  Response<?> updateNote(UpdateNoteReqVO updateNoteReqVO);
+
+  /**
+   * 删除本地笔记缓存
+   *
+   * @param noteId
+   */
+  void deleteNoteLocalCache(Long noteId);
 }
