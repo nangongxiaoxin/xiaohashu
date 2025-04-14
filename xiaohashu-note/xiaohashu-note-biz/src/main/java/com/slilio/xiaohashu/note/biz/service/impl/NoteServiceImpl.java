@@ -37,10 +37,14 @@ import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -410,8 +414,26 @@ public class NoteServiceImpl implements NoteService {
     noteDOMapper.updateByPrimaryKey(noteDO);
 
     // 删除redis缓存
-    String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
-    redisTemplate.delete(noteDetailRedisKey);
+    //
+    //    异步发送延迟信息
+    Message<String> message = MessageBuilder.withPayload(String.valueOf(noteId)).build();
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_DELAY_DELETE_NOTE_REDIS_CACHE,
+        message,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("## 延时删除 Redis 笔记缓存消息发送成功...");
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("## 延时删除 Redis 笔记缓存消息发送失败...");
+          }
+        },
+        3000, // 超时时间（毫秒）
+        1 // 延迟级别，1表示延时1s
+        );
 
     // 删除本地缓存
     // LOCAL_CACHE.invalidate(noteId);
