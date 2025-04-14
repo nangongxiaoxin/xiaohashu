@@ -388,6 +388,10 @@ public class NoteServiceImpl implements NoteService {
       }
     }
 
+    // 删除redis缓存
+    String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+    redisTemplate.delete(noteDetailRedisKey);
+
     // 更新笔记元数据表 t_note
     String content = updateNoteReqVO.getContent();
     NoteDO noteDO =
