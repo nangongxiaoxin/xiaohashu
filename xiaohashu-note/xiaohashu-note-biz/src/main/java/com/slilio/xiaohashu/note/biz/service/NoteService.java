@@ -1,10 +1,7 @@
 package com.slilio.xiaohashu.note.biz.service;
 
 import com.slilio.framework.common.response.Response;
-import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
-import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
-import com.slilio.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
-import com.slilio.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
+import com.slilio.xiaohashu.note.biz.model.vo.*;
 
 public interface NoteService {
   /**
@@ -37,4 +34,12 @@ public interface NoteService {
    * @param noteId
    */
   void deleteNoteLocalCache(Long noteId);
+
+  /**
+   * 删除笔记
+   *
+   * @param deleteNoteReqVO
+   * @return
+   */
+  Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO);
 }

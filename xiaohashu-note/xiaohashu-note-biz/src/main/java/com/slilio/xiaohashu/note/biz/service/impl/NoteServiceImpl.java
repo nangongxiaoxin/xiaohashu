@@ -18,10 +18,7 @@ import com.slilio.xiaohashu.note.biz.enums.NoteStatusEnum;
 import com.slilio.xiaohashu.note.biz.enums.NoteTypeEnum;
 import com.slilio.xiaohashu.note.biz.enums.NoteVisibleEnum;
 import com.slilio.xiaohashu.note.biz.enums.ResponseCodeEnum;
-import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailReqVO;
-import com.slilio.xiaohashu.note.biz.model.vo.FindNoteDetailRspVO;
-import com.slilio.xiaohashu.note.biz.model.vo.PublishNoteReqVO;
-import com.slilio.xiaohashu.note.biz.model.vo.UpdateNoteReqVO;
+import com.slilio.xiaohashu.note.biz.model.vo.*;
 import com.slilio.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.note.biz.rpc.KeyValueRpcService;
 import com.slilio.xiaohashu.note.biz.rpc.UserRpcService;
@@ -474,6 +471,43 @@ public class NoteServiceImpl implements NoteService {
   @Override
   public void deleteNoteLocalCache(Long noteId) {
     LOCAL_CACHE.invalidate(noteId);
+  }
+
+  /**
+   * 删除笔记
+   *
+   * @param deleteNoteReqVO
+   * @return
+   */
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public Response<?> deleteNote(DeleteNoteReqVO deleteNoteReqVO) {
+    // 笔记ID
+    Long noteId = deleteNoteReqVO.getId();
+
+    // 逻辑删除
+    NoteDO noteDO =
+        NoteDO.builder()
+            .id(noteId)
+            .status(NoteStatusEnum.DELETED.getCode())
+            .updateTime(LocalDateTime.now())
+            .build();
+
+    int count = noteDOMapper.updateByPrimaryKeySelective(noteDO);
+
+    // 若影响行数为0，则表示该笔记不存在
+    if (count == 0) {
+      throw new BizException(ResponseCodeEnum.NOTE_NOT_FOUND);
+    }
+
+    // 删除缓存
+    String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+    redisTemplate.delete(noteDetailRedisKey);
+
+    // 同步发送广播模式MQ，将所有实例的本地缓存删除掉
+    rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+    log.info("====> MQ：删除笔记本地缓存发送成功...");
+    return Response.success();
   }
 
   /** 笔记可见性校验，针对vo实体类 */
