@@ -510,6 +510,43 @@ public class NoteServiceImpl implements NoteService {
     return Response.success();
   }
 
+  /**
+   * 笔记仅自己可见
+   *
+   * @param updateNoteVisibleOnlyMeReqVO
+   * @return
+   */
+  @Override
+  public Response<?> visibleOnlyMe(UpdateNoteVisibleOnlyMeReqVO updateNoteVisibleOnlyMeReqVO) {
+    // 笔记ID
+    Long noteId = updateNoteVisibleOnlyMeReqVO.getId();
+
+    // 构建新的DO实体类
+    NoteDO noteDO =
+        NoteDO.builder()
+            .id(noteId)
+            .visible(NoteVisibleEnum.PRIVATE.getCode())
+            .updateTime(LocalDateTime.now())
+            .build();
+    // 执行SQL
+    int count = noteDOMapper.updateVisibleOnlyMe(noteDO);
+
+    // 若影响行数为0，则表示该笔记无法修改为仅自己可见
+    if (count == 0) {
+      throw new BizException(ResponseCodeEnum.NOTE_CANT_VISIBLE_ONLY_ME);
+    }
+
+    // 删除redis缓存
+    String noteDetailRedisKey = RedisKeyConstants.buildNoteDetailKey(noteId);
+    redisTemplate.delete(noteDetailRedisKey);
+
+    // 同步发送广播模式MQ，将所有实例的本地缓存都删除掉
+    rocketMQTemplate.syncSend(MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, noteId);
+    log.info("====》 MQ：删除笔记本地缓存发送成功。。。");
+
+    return Response.success();
+  }
+
   /** 笔记可见性校验，针对vo实体类 */
   private void checkNoteVisibleFromVO(Long userId, FindNoteDetailRspVO findNoteDetailRspVO) {
     if (Objects.nonNull(findNoteDetailRspVO)) {

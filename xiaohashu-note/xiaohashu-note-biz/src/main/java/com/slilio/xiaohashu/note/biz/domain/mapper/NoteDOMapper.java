@@ -3,15 +3,17 @@ package com.slilio.xiaohashu.note.biz.domain.mapper;
 import com.slilio.xiaohashu.note.biz.domain.dataobject.NoteDO;
 
 public interface NoteDOMapper {
-    int deleteByPrimaryKey(Long id);
+  int deleteByPrimaryKey(Long id);
 
-    int insert(NoteDO record);
+  int insert(NoteDO record);
 
-    int insertSelective(NoteDO record);
+  int insertSelective(NoteDO record);
 
-    NoteDO selectByPrimaryKey(Long id);
+  NoteDO selectByPrimaryKey(Long id);
 
-    int updateByPrimaryKeySelective(NoteDO record);
+  int updateByPrimaryKeySelective(NoteDO record);
 
-    int updateByPrimaryKey(NoteDO record);
+  int updateByPrimaryKey(NoteDO record);
+
+  int updateVisibleOnlyMe(NoteDO noteDO);
 }
