@@ -50,4 +50,12 @@ public interface NoteService {
    * @return
    */
   Response<?> visibleOnlyMe(UpdateNoteVisibleOnlyMeReqVO updateNoteVisibleOnlyMeReqVO);
+
+  /**
+   * 笔记置顶、取消
+   *
+   * @param topNoteReqVO
+   * @return
+   */
+  Response<?> topNote(TopNoteReqVO topNoteReqVO);
 }
