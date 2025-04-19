@@ -1,6 +1,6 @@
 package com.slilio.xiaohashu.user.relation.biz.domain.dataobject;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,5 +17,5 @@ public class FansDO {
 
   private Long fansUserId;
 
-  private Date createTime;
+  private LocalDateTime createTime;
 }
