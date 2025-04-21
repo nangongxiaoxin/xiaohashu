@@ -1,5 +1,6 @@
 package com.slilio.xiaohashu.user.relation.biz.consumer;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.user.relation.biz.constant.MQConstants;
 import com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FansDO;
@@ -31,8 +32,13 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
   @Resource private FansDOMapper fansDOMapper;
   @Resource private TransactionTemplate transactionTemplate;
 
+  @Resource private RateLimiter rateLimiter;
+
   @Override
   public void onMessage(Message message) {
+    // 流量消峰
+    rateLimiter.acquire();
+
     // 消息体
     String bodyJsonStr = new String(message.getBody());
     // 标签
