@@ -1,8 +1,10 @@
 package com.slilio.xiaohashu.user.relation.biz.consumer;
 
 import com.google.common.util.concurrent.RateLimiter;
+import com.slilio.framework.common.util.DateUtils;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.user.relation.biz.constant.MQConstants;
+import com.slilio.xiaohashu.user.relation.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FansDO;
 import com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO;
 import com.slilio.xiaohashu.user.relation.biz.domain.mapper.FansDOMapper;
@@ -10,11 +12,16 @@ import com.slilio.xiaohashu.user.relation.biz.domain.mapper.FollowingDOMapper;
 import com.slilio.xiaohashu.user.relation.biz.model.dto.FollowUserMqDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -31,6 +38,7 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
   @Resource private FollowingDOMapper followingDOMapper;
   @Resource private FansDOMapper fansDOMapper;
   @Resource private TransactionTemplate transactionTemplate;
+  @Resource private RedisTemplate<String, Object> redisTemplate;
 
   @Resource private RateLimiter rateLimiter;
 
@@ -108,7 +116,22 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
                   }
                   return false;
                 }));
-    log.info("## 数据库添加记录结果：{}", isSuccess);
-    // TODO ：更新Redis中被关注用户的ZSET粉丝列表
+
+    // 若数据库操作成功，更新Redis中被关注用户的ZSet粉丝列表
+    if (isSuccess) {
+      // Lua脚本
+      DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+      script.setScriptSource(
+          new ResourceScriptSource(
+              new ClassPathResource("/lua/follow_check_and_update_fans_zset.lua")));
+      script.setResultType(Long.class);
+
+      // 时间戳
+      long timestamp = DateUtils.localDateTime2Timestamp(createTime);
+      // 构建被关注用户的粉丝列表Redis key
+      String fansRedisKey = RedisKeyConstants.buildUserFansKey(followUserId);
+      // 执行脚本
+      redisTemplate.execute(script, Collections.singletonList(fansRedisKey), userId, timestamp);
+    }
   }
 }

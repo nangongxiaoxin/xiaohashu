@@ -6,8 +6,6 @@ import com.slilio.xiaohashu.user.relation.biz.model.dto.FollowUserMqDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.producer.SendCallback;
-import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,20 +40,20 @@ class MQTests {
       log.info("===》 开始发送关注操作MQ，消息体：{}", followUserMqDTO);
 
       // 异步发送MQ消息，提升接口响应速度
-      rocketMQTemplate.asyncSend(
-          destination,
-          message,
-          new SendCallback() {
-            @Override
-            public void onSuccess(SendResult sendResult) {
-              log.info("==> MQ 发送成功，SendResult: {}", sendResult);
-            }
-
-            @Override
-            public void onException(Throwable throwable) {
-              log.error("==> MQ 发送异常: ", throwable);
-            }
-          });
+      //      rocketMQTemplate.asyncSend(
+      //          destination,
+      //          message,
+      //          new SendCallback() {
+      //            @Override
+      //            public void onSuccess(SendResult sendResult) {
+      //              log.info("==> MQ 发送成功，SendResult: {}", sendResult);
+      //            }
+      //
+      //            @Override
+      //            public void onException(Throwable throwable) {
+      //              log.error("==> MQ 发送异常: ", throwable);
+      //            }
+      //          });
     }
   }
 }
