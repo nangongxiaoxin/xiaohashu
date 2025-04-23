@@ -3,6 +3,7 @@ package com.slilio.xiaohashu.user.relation.biz.controller;
 import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.relation.biz.model.vo.FollowUserReqVO;
+import com.slilio.xiaohashu.user.relation.biz.model.vo.UnfollowUserReqVO;
 import com.slilio.xiaohashu.user.relation.biz.service.RelationService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -25,5 +26,11 @@ public class RelationController {
   @ApiOperationLog(description = "关注用户")
   public Response<?> follow(@Validated @RequestBody FollowUserReqVO followUserReqVO) {
     return relationService.follow(followUserReqVO);
+  }
+
+  @PostMapping("/unfollow")
+  @ApiOperationLog(description = "取注用户")
+  public Response<?> unfollow(@Validated @RequestBody UnfollowUserReqVO unfollowUserReqVO) {
+    return relationService.unfollow(unfollowUserReqVO);
   }
 }
