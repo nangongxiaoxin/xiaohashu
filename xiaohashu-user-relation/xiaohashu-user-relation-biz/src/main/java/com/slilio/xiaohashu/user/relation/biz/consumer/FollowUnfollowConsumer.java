@@ -10,12 +10,14 @@ import com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO;
 import com.slilio.xiaohashu.user.relation.biz.domain.mapper.FansDOMapper;
 import com.slilio.xiaohashu.user.relation.biz.domain.mapper.FollowingDOMapper;
 import com.slilio.xiaohashu.user.relation.biz.model.dto.FollowUserMqDTO;
+import com.slilio.xiaohashu.user.relation.biz.model.dto.UnfollowUserMqDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.core.io.ClassPathResource;
@@ -31,7 +33,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 @RocketMQMessageListener(
     consumerGroup = "xiaohashu-group", // group组
-    topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW // 消费者的Topic主题，
+    topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW, // 消费者的Topic主题，
+    consumeMode = ConsumeMode.ORDERLY // 设置为顺序消费模式
     )
 @Slf4j
 public class FollowUnfollowConsumer implements RocketMQListener<Message> {
@@ -60,7 +63,63 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
       handleFollTagMessage(bodyJsonStr);
     } else if (Objects.equals(tags, MQConstants.TAG_UNFOLLOW)) {
       // 取关
-      // todo
+      handleUnfollowTagMessage(bodyJsonStr);
+    }
+  }
+
+  /**
+   * 取关
+   *
+   * @param bodyJsonStr
+   */
+  private void handleUnfollowTagMessage(String bodyJsonStr) {
+    // 将消息体Json字符串转为DTO对象
+    UnfollowUserMqDTO unfollowUserMqDTO =
+        JsonUtils.parseObject(bodyJsonStr, UnfollowUserMqDTO.class);
+
+    // 判空
+    if (Objects.isNull(unfollowUserMqDTO)) {
+      return;
+    }
+
+    Long userId = unfollowUserMqDTO.getUserId();
+    Long unfollowUserId = unfollowUserMqDTO.getUnfollowUserId();
+    LocalDateTime createTime = unfollowUserMqDTO.getCreateTime();
+
+    // 编程式提交事务
+    boolean isSuccess =
+        Boolean.TRUE.equals(
+            transactionTemplate.execute(
+                status -> {
+                  try {
+                    // 取关成功需要删除数据库两条记录
+
+                    // 关注表：一条记录
+                    int count =
+                        followingDOMapper.deleteByUserIdAndFollowingUserId(userId, unfollowUserId);
+
+                    // 粉丝表： 一条记录
+                    if (count > 0) {
+                      fansDOMapper.deleteByUserIdAndFansUserId(unfollowUserId, userId);
+                    }
+
+                    return true;
+                  } catch (Exception ex) {
+                    status.setRollbackOnly(); // 标记事务为回滚
+                    log.error("", ex);
+
+                    return false;
+                  }
+                }));
+    // 若数据库删除成功，更新 Redis，将自己从被取注用户的 ZSet 粉丝列表删除
+    if (isSuccess) {
+      // 被取关用户的粉丝列表Redis Key
+      String fansRedisKey = RedisKeyConstants.buildUserFansKey(unfollowUserId);
+      // 删除指定粉丝
+      redisTemplate.opsForZSet().remove(fansRedisKey, userId);
+
+      // todo 粉丝ZSET存在逻辑判断和再次新增粉丝Zset
+
     }
   }
 
@@ -132,6 +191,8 @@ public class FollowUnfollowConsumer implements RocketMQListener<Message> {
       String fansRedisKey = RedisKeyConstants.buildUserFansKey(followUserId);
       // 执行脚本
       redisTemplate.execute(script, Collections.singletonList(fansRedisKey), userId, timestamp);
+
+      // todo 粉丝ZSET存在逻辑判断和再次新增粉丝Zset
     }
   }
 }
