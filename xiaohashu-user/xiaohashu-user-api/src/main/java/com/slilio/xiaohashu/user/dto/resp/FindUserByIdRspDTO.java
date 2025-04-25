@@ -16,4 +16,6 @@ public class FindUserByIdRspDTO {
   private String nickName; // 昵称
 
   private String avatar; // 头像
+
+  private String introduction; // 简介
 }

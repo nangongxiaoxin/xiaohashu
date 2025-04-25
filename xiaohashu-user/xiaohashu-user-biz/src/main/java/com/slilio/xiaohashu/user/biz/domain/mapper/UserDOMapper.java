@@ -1,6 +1,8 @@
 package com.slilio.xiaohashu.user.biz.domain.mapper;
 
 import com.slilio.xiaohashu.user.biz.domain.dataobject.UserDO;
+import java.util.List;
+import org.apache.ibatis.annotations.Param;
 
 public interface UserDOMapper {
   int deleteByPrimaryKey(Long id);
@@ -22,4 +24,6 @@ public interface UserDOMapper {
    * @return
    */
   UserDO selectByPhone(String phone);
+
+  List<UserDO> selectByIds(@Param("ids") List<Long> ids);
 }

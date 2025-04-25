@@ -2,12 +2,10 @@ package com.slilio.xiaohashu.user.biz.service;
 
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
-import com.slilio.xiaohashu.user.dto.req.FindUserByIdReqDTO;
-import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
-import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
-import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.req.*;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
+import java.util.List;
 
 public interface UserService {
   /**
@@ -49,4 +47,12 @@ public interface UserService {
    * @return
    */
   Response<FindUserByIdRspDTO> findById(FindUserByIdReqDTO findUserByIdReqDTO);
+
+  /**
+   * 批量根据用户ID查询用户信息
+   *
+   * @param findUsersByIdsReqDTO
+   * @return
+   */
+  Response<List<FindUserByIdRspDTO>> findByIds(FindUsersByIdsReqDTO findUsersByIdsReqDTO);
 }

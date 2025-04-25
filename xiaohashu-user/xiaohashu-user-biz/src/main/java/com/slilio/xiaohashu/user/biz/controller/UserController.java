@@ -4,13 +4,11 @@ import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.service.UserService;
-import com.slilio.xiaohashu.user.dto.req.FindUserByIdReqDTO;
-import com.slilio.xiaohashu.user.dto.req.FindUserByPhoneReqDTO;
-import com.slilio.xiaohashu.user.dto.req.RegisterUserReqDTO;
-import com.slilio.xiaohashu.user.dto.req.UpdateUserPasswordReqDTO;
+import com.slilio.xiaohashu.user.dto.req.*;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByPhoneRspDTO;
 import jakarta.annotation.Resource;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
@@ -56,5 +54,12 @@ public class UserController {
   public Response<FindUserByIdRspDTO> findById(
       @Validated @RequestBody FindUserByIdReqDTO findUserByIdReqDTO) {
     return userService.findById(findUserByIdReqDTO);
+  }
+
+  @PostMapping("/findByIds")
+  @ApiOperationLog(description = "批量查询用户信息")
+  public Response<List<FindUserByIdRspDTO>> findByIds(
+      @Validated @RequestBody FindUsersByIdsReqDTO findUsersByIdsReqDTO) {
+    return userService.findByIds(findUsersByIdsReqDTO);
   }
 }
