@@ -3,10 +3,7 @@ package com.slilio.xiaohashu.user.relation.biz.controller;
 import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.PageResponse;
 import com.slilio.framework.common.response.Response;
-import com.slilio.xiaohashu.user.relation.biz.model.vo.FindFollowingListReqVO;
-import com.slilio.xiaohashu.user.relation.biz.model.vo.FindFollowingUserRspVO;
-import com.slilio.xiaohashu.user.relation.biz.model.vo.FollowUserReqVO;
-import com.slilio.xiaohashu.user.relation.biz.model.vo.UnfollowUserReqVO;
+import com.slilio.xiaohashu.user.relation.biz.model.vo.*;
 import com.slilio.xiaohashu.user.relation.biz.service.RelationService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -42,5 +39,12 @@ public class RelationController {
   public PageResponse<FindFollowingUserRspVO> findFollowingList(
       @Validated @RequestBody FindFollowingListReqVO findFollowingListReqVO) {
     return relationService.findFollowingList(findFollowingListReqVO);
+  }
+
+  @PostMapping("/fans/list")
+  @ApiOperationLog(description = "查询用户粉丝列表")
+  public PageResponse<FindFansUserRspVO> findFansList(
+      @Validated @RequestBody FindFansListReqVO findFansListReqVO) {
+    return relationService.findFansList(findFansListReqVO);
   }
 }

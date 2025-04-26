@@ -52,4 +52,19 @@ public class PageResponse<T> extends Response<List<T>> {
   public static long getTotalPage(long totalCount, long pageSize) {
     return pageSize == 0 ? 0 : (totalCount + pageSize - 1) / pageSize;
   }
+
+  /**
+   * 计算页码小于1，默认返回第一页的offset
+   *
+   * @param pageNo
+   * @param pageSize
+   * @return
+   */
+  public static long getOffset(long pageNo, long pageSize) {
+    // 如果页码小于1，默认返回第一页的offset
+    if (pageNo < 1) {
+      pageNo = 1;
+    }
+    return (pageNo - 1) * pageSize;
+  }
 }

@@ -23,6 +23,28 @@
         from t_following
         where user_id = #{userId,jdbcType=BIGINT}
     </select>
+    <select id="selectCountByUserId" resultType="long" parameterType="long">
+        select count(*)
+        from t_following
+        where user_id = #{userId}
+    </select>
+    <select id="selectPageListByUserId"
+            resultType="com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO" resultMap="BaseResultMap"
+            parameterType="map">
+        select following_user_id
+        from t_following
+        where user_id = #{userId}
+        order by create_time desc
+        limit #{offset},#{limit}
+    </select>
+    <select id="selectAllByUserId"
+            resultType="com.slilio.xiaohashu.user.relation.biz.domain.dataobject.FollowingDO" resultMap="BaseResultMap">
+        select following_user_id, create_time
+        from t_following
+        where user_id = #{userId}
+        limit 1000
+
+    </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete
         from t_following
