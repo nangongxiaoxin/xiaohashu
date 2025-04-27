@@ -31,6 +31,7 @@
         <module>xiaohashu-distributed-id-generator</module>
         <module>xiaohashu-note</module>
         <module>xiaohashu-user-relation</module>
+        <module>xiaohashu-count</module>
     </modules>
 
     <properties>
