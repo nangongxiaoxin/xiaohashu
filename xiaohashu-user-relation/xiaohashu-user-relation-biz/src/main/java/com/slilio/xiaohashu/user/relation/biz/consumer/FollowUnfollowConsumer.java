@@ -32,7 +32,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Component
 @RocketMQMessageListener(
-    consumerGroup = "xiaohashu-group", // group组
+    consumerGroup = "xiaohashu-group" + MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW, // group组
     topic = MQConstants.TOPIC_FOLLOW_OR_UNFOLLOW, // 消费者的Topic主题，
     consumeMode = ConsumeMode.ORDERLY // 设置为顺序消费模式
     )

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 @RocketMQMessageListener(
-    consumerGroup = "xiaohashu_group", // 组 group
+    consumerGroup = "xiaohashu_group" + MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, // 组 group
     topic = MQConstants.TOPIC_DELETE_NOTE_LOCAL_CACHE, // 消费的主题 Topic
     messageModel = MessageModel.BROADCASTING // 广播模式
     )
