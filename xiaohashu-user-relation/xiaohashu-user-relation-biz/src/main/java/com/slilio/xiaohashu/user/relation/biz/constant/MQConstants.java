@@ -7,4 +7,7 @@ public interface MQConstants {
   String TOPIC_FOLLOW_OR_UNFOLLOW = "FollowUnfollowTopic"; // topic ：关注、取关公用一个
   String TAG_FOLLOW = "Follow"; // tag：关注
   String TAG_UNFOLLOW = "Unfollow"; // tag：取关
+
+  String TOPIC_COUNT_FOLLOWING = "CountFollowingTopic"; // topic：关注数计数
+  String TOPIC_COUNT_FANS = "CountFansTopic"; // topic：粉丝数计数
 }
