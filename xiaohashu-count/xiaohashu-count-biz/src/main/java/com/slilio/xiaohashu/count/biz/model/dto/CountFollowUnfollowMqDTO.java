@@ -1,4 +1,4 @@
-package com.slilio.xiaohashu.user.relation.biz.model.dto;
+package com.slilio.xiaohashu.count.biz.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * @Author: slilio @CreateTime: 2025-04-29 @Description: 计数关注、取关服务实体类 @Version: 1.0
+ * @Author: slilio @CreateTime: 2025-05-01 @Description: DTO实体类 @Version: 1.0
  */
 @Data
 @Builder
@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CountFollowUnfollowMqDTO {
   private Long userId; // 原用户
+
   private Long targetUserId; // 目标用户
-  private Integer type; // 1：关注； 0：取关
+
+  private Integer type; // 1：关注，0：取关
 }

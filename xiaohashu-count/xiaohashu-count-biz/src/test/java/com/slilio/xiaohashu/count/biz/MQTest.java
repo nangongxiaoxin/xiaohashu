@@ -30,7 +30,7 @@ public class MQTest {
       CountFollowUnfollowMqDTO countFollowUnfollowMqDTO =
           CountFollowUnfollowMqDTO.builder()
               .userId(i + 1) // 关注者用户 ID
-              .targetUserId(27L) // 目标用户
+              .targetUserId(1L) // 目标用户
               .type(FollowUnfollowTypeEnum.FOLLOW.getCode())
               .build();
 
