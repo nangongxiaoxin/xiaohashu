@@ -10,6 +10,9 @@ public class RedisKeyConstants {
   // Hash field：粉丝总数
   public static final String FIELD_FANS_TOTAL = "fansTotal";
 
+  // Hash field：关注总数
+  public static final String FIELD_FOLLOWING_TOTAL = "followingTotal";
+
   public static String buildCountUserKey(Long userId) {
     return COUNT_USER_KEY_PREFIX + userId;
   }

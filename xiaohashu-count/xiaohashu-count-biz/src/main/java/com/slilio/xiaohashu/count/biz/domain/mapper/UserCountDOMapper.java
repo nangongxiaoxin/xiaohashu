@@ -1,17 +1,37 @@
 package com.slilio.xiaohashu.count.biz.domain.mapper;
 
 import com.slilio.xiaohashu.count.biz.domain.dataobject.UserCountDO;
+import org.apache.ibatis.annotations.Param;
 
 public interface UserCountDOMapper {
-    int deleteByPrimaryKey(Long id);
+  int deleteByPrimaryKey(Long id);
 
-    int insert(UserCountDO record);
+  int insert(UserCountDO record);
 
-    int insertSelective(UserCountDO record);
+  int insertSelective(UserCountDO record);
 
-    UserCountDO selectByPrimaryKey(Long id);
+  UserCountDO selectByPrimaryKey(Long id);
 
-    int updateByPrimaryKeySelective(UserCountDO record);
+  int updateByPrimaryKeySelective(UserCountDO record);
 
-    int updateByPrimaryKey(UserCountDO record);
+  int updateByPrimaryKey(UserCountDO record);
+
+  /**
+   * 添加或者更新粉丝总数
+   *
+   * @param count
+   * @param userId
+   * @return
+   */
+  int insertOrUpdateFansTotalByUserId(@Param("count") Integer count, @Param("userId") Long userId);
+
+  /**
+   * 添加或者更新关注总数
+   *
+   * @param count
+   * @param userId
+   * @return
+   */
+  int insertOrUpdateFollowingTotalByUserId(
+      @Param("count") Integer count, @Param("userId") Long userId);
 }

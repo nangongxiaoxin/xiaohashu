@@ -14,9 +14,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,9 +33,10 @@ import org.springframework.stereotype.Component;
     topic = MQConstants.TOPIC_COUNT_FANS // 主题topic
     )
 @Slf4j
-public class CountFansConsumer implements RocketMQListener<String> { // TODO :Message
+public class CountFansConsumer implements RocketMQListener<String> {
 
   @Resource private RedisTemplate<String, Object> redisTemplate;
+  @Resource private RocketMQTemplate rocketMQTemplate;
 
   private BufferTrigger<String> bufferTrigger =
       BufferTrigger.<String>batchBlocking()
@@ -106,6 +112,24 @@ public class CountFansConsumer implements RocketMQListener<String> { // TODO :Me
             redisTemplate.opsForHash().increment(redisKey, RedisKeyConstants.FIELD_FANS_TOTAL, v);
           }
         });
-    // todo：发送MQ，计数数据落库
+    // 发送MQ，计数数据落库
+    // 构建消息体DTO
+    Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countMap)).build();
+
+    // 异步发送MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_COUNT_FANS_2_DB,
+        message,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==》 【计数服务：粉丝数入库】MQ发送成功，sendResult：{}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==》 【计数服务：粉丝数入库】MQ发送异常：", throwable);
+          }
+        });
   }
 }
