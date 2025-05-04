@@ -32,6 +32,24 @@
         where user_id = #{userId}
           and status = 1
     </select>
+    <select id="selectNoteIsLiked" resultType="int" parameterType="map">
+        select count(1)
+        from t_note_like
+        where user_id = #{userId}
+          and note_id = #{noteId}
+          and status = 1
+        limit 1
+    </select>
+    <select id="selectLikedByUserIdAndLimit"
+            resultType="com.slilio.xiaohashu.note.biz.domain.dataobject.NoteLikeDO" parameterType="map"
+            resultMap="BaseResultMap">
+        select note_id, create_time
+        from t_note_like
+        where user_id = #{userId}
+          and status = 1
+        order by create_time desc
+        limit #{limit}
+    </select>
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete
         from t_note_like
