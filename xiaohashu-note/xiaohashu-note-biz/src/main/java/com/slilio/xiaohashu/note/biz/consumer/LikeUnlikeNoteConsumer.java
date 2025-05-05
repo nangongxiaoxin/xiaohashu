@@ -53,6 +53,7 @@ public class LikeUnlikeNoteConsumer implements RocketMQListener<Message> {
       // 点赞笔记
       handleLikeNoteTagMessage(bodyJsonStr);
     } else if (Objects.equals(tags, MQConstants.TAG_UNLIKE)) {
+      // 取消点赞笔记
       handleUnlikeNoteTagMessage(bodyJsonStr);
     }
   }
@@ -100,5 +101,36 @@ public class LikeUnlikeNoteConsumer implements RocketMQListener<Message> {
    *
    * @param bodyJsonStr
    */
-  private void handleUnlikeNoteTagMessage(String bodyJsonStr) {}
+  private void handleUnlikeNoteTagMessage(String bodyJsonStr) {
+    // 消息体Json转DTO
+    LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO =
+        JsonUtils.parseObject(bodyJsonStr, LikeUnlikeNoteMqDTO.class);
+
+    if (Objects.isNull(likeUnlikeNoteMqDTO)) {
+      return;
+    }
+
+    // 用户ID
+    Long userId = likeUnlikeNoteMqDTO.getUserId();
+    // 笔记ID
+    Long noteId = likeUnlikeNoteMqDTO.getNoteId();
+    // 操作类型
+    Integer type = likeUnlikeNoteMqDTO.getType();
+    // 点赞时间
+    LocalDateTime createTime = likeUnlikeNoteMqDTO.getCreateTime();
+
+    // 构建DO对象
+    NoteLikeDO noteLikeDO =
+        NoteLikeDO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .createTime(createTime)
+            .status(type)
+            .build();
+
+    // 取消点赞：记录更新
+    int count = noteLikeDOMapper.update2UnlikeByUserIdAndNoteId(noteLikeDO);
+    // todo：发送计数MQ
+
+  }
 }

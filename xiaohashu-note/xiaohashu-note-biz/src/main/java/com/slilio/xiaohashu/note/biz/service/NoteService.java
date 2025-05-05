@@ -66,4 +66,12 @@ public interface NoteService {
    * @return
    */
   Response<?> likeNote(LikeNoteReqVO likeNoteReqVO);
+
+  /**
+   * 取消点赞笔记
+   *
+   * @param unLikeNoteReqVO
+   * @return
+   */
+  Response<?> unLikeNote(UnlikeNoteReqVO unLikeNoteReqVO);
 }

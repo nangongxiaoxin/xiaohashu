@@ -17,7 +17,6 @@ public enum NoteLikeLuaResultEnum {
   // 笔记点赞成功
   NOTE_LIKE_SUCCESS(0L),
   ;
-  ;
 
   private final Long code;
 

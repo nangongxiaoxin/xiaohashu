@@ -667,7 +667,7 @@ public class NoteServiceImpl implements NoteService {
     switch (noteLikeLuaResultEnum) {
       // Redis中布隆过滤器不存在
       case NOT_EXIST -> {
-        // todo：从数据库中校验笔记是否被点赞，并异步初始化布隆过滤器，设置过期时间
+        // 从数据库中校验笔记是否被点赞，并异步初始化布隆过滤器，设置过期时间
         int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
 
         // 过期时间 1天+
@@ -676,9 +676,14 @@ public class NoteServiceImpl implements NoteService {
         // 目标笔记已经被点赞
         if (count > 0) {
           // 异步初始化布隆过滤器
-          asyncBatchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
+          threadPoolTaskExecutor.submit(
+              () ->
+                  batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey));
           throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
         }
+
+        // 若目标笔记未被点赞，查询当前用户是否有其他笔记，有则同步初始化布隆过滤器
+        batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
 
         // 若数据库中也没有点赞记录，说明该用户还未点赞过任何笔记
         // lua脚本路径
@@ -788,6 +793,136 @@ public class NoteServiceImpl implements NoteService {
         });
 
     return Response.success();
+  }
+
+  /**
+   * 取消点赞笔记
+   *
+   * @param unLikeNoteReqVO
+   * @return
+   */
+  @Override
+  public Response<?> unLikeNote(UnlikeNoteReqVO unLikeNoteReqVO) {
+    // 笔记ID
+    Long noteId = unLikeNoteReqVO.getId();
+
+    // 1.校验笔记是否存在
+    checkNoteIsExist(noteId);
+
+    // 2.校验笔记是否被点赞过
+    // 当前登录用户ID
+    Long userId = LoginUserContextHolder.getUserId();
+
+    // 布隆过滤器Key
+    String bloomUserNoteLikeListKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(userId);
+
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    // 脚本路径
+    script.setScriptSource(
+        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_unlike_check.lua")));
+    // 返回值类型
+    script.setResultType(Long.class);
+    // 执行脚本
+    Long result =
+        redisTemplate.execute(script, Collections.singletonList(bloomUserNoteLikeListKey), noteId);
+
+    NoteUnlikeLuaResultEnum noteUnlikeLuaResultEnum = NoteUnlikeLuaResultEnum.valueOf(result);
+
+    switch (noteUnlikeLuaResultEnum) {
+      // 布隆过滤器不存在
+      case NOT_EXISTS -> {
+        // 异步初始化布隆过滤器
+        threadPoolTaskExecutor.submit(
+            () -> {
+              // 过期时间 1天+
+              long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+              batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
+            });
+
+        // 从数据库校验笔记是否被点赞
+        int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
+
+        // 未点赞，无法点赞，抛出异常
+        if (count == 0) {
+          throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
+        }
+      }
+      // 布隆过滤器校验目标笔记未被点赞（判断绝对准确）
+      case NOTE_NOT_LIKED -> {
+        throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
+      }
+    }
+
+    // 3.校验完毕，然后，删除ZSET中已经点赞的笔记ID
+    // 用户点赞列表ZSet Key
+    String userNoteLikeZSetKey = RedisKeyConstants.buildUserNoteLikeZSetKey(userId);
+    redisTemplate.opsForZSet().remove(userNoteLikeZSetKey, noteId);
+    // 4.发送MQ，数据更新落库
+    // 构建消息体DTO
+    LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO =
+        LikeUnlikeNoteMqDTO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .type(LikeUnlikeNoteTypeEnum.UNLIKE.getCode()) // 取消点赞
+            .createTime(LocalDateTime.now())
+            .build();
+
+    // 构建消息对象，并将DTO转换为json设置到消息体中
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
+    // 通过冒号连接，让MQ发送主题topic携带tag
+    String destination = MQConstants.TOPIC_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_UNLIKE;
+    String hashKey = String.valueOf(userId);
+    // 异步发送MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==》 【笔记取消点赞】MQ发送成功，SendResult：{}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==》 【笔记取消点赞】MQ发送异常：", throwable);
+          }
+        });
+
+    return Response.success();
+  }
+
+  /**
+   * 异步初始化布隆过滤器
+   *
+   * @param userId
+   * @param expireSeconds
+   * @param bloomUserNoteLikeListKey
+   */
+  private void batchAddNoteLike2BloomAndExpire(
+      Long userId, long expireSeconds, String bloomUserNoteLikeListKey) {
+    try {
+      // 异步全量同步一下，并设置过期时间
+      List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
+
+      if (CollUtil.isNotEmpty(noteLikeDOS)) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(
+            new ResourceScriptSource(
+                new ClassPathResource("/lua/bloom_batch_add_note_like_and_expire.lua")));
+        script.setResultType(Long.class);
+
+        // 构建Lua参数
+        List<Object> luaArgs = Lists.newArrayList();
+        noteLikeDOS.forEach(noteLikeDO -> luaArgs.add(noteLikeDO.getNoteId())); // 将每个点赞的笔记ID传入
+        luaArgs.add(expireSeconds); // 最后一个为过期时间
+        redisTemplate.execute(
+            script, Collections.singletonList(bloomUserNoteLikeListKey), luaArgs.toArray());
+      }
+    } catch (Exception e) {
+      log.error("## 异步初始化布隆过滤器异常： ", e);
+    }
   }
 
   /**
