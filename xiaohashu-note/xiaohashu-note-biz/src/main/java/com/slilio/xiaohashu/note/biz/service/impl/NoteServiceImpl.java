@@ -19,6 +19,7 @@ import com.slilio.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.slilio.xiaohashu.note.biz.domain.mapper.NoteLikeDOMapper;
 import com.slilio.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
 import com.slilio.xiaohashu.note.biz.enums.*;
+import com.slilio.xiaohashu.note.biz.model.dto.LikeUnlikeNoteMqDTO;
 import com.slilio.xiaohashu.note.biz.model.vo.*;
 import com.slilio.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.note.biz.rpc.KeyValueRpcService;
@@ -39,7 +40,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -59,11 +59,13 @@ public class NoteServiceImpl implements NoteService {
   @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
   @Resource private KeyValueRpcService keyValueRpcService;
   @Resource private UserRpcService userRpcService;
+  @Resource private RedisTemplate<String, String> redisTemplate;
+  @Resource private ResourceLoader resourceLoader;
+  @Resource private RocketMQTemplate rocketMQTemplate;
+  @Resource private NoteLikeDOMapper noteLikeDOMapper;
 
   @Resource(name = "taskExecutor")
   private ThreadPoolTaskExecutor threadPoolTaskExecutor;
-
-  @Resource private RedisTemplate<String, String> redisTemplate;
 
   /** 笔记详情本地缓存 */
   private static final Cache<Long, String> LOCAL_CACHE =
@@ -72,10 +74,6 @@ public class NoteServiceImpl implements NoteService {
           .maximumSize(10000) // 设置缓存的最大容量为10000个条目
           .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存的条目在写入后一个小时过期
           .build();
-
-  @Autowired private ResourceLoader resourceLoader;
-  @Autowired private RocketMQTemplate rocketMQTemplate;
-  @Autowired private NoteLikeDOMapper noteLikeDOMapper;
 
   /**
    * 笔记发布
@@ -757,6 +755,38 @@ public class NoteServiceImpl implements NoteService {
       }
     }
     // 4.发送MQ，将点赞落数据库
+    // 构建消息体DTO
+    LikeUnlikeNoteMqDTO likeUnlikeNoteMqDTO =
+        LikeUnlikeNoteMqDTO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .type(LikeUnlikeNoteTypeEnum.LIKE.getCode())
+            .createTime(now)
+            .build();
+
+    // 构建消息对象
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeNoteMqDTO)).build();
+    // 通过冒号链接，让MQ发送主题topic时携带标签tag
+    String destination = MQConstants.TOPIC_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_LIKE;
+    String hashKey = String.valueOf(userId);
+    // 异步发送MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==》 【笔记点赞】MQ发送成功，SendResult：{}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==》 【笔记点赞】MQ发送异常：", throwable);
+          }
+        });
+
     return Response.success();
   }
 
