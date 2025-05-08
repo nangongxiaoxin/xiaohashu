@@ -22,6 +22,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
   NOTE_CANT_OPERATE("NOTE-20007", "您无法操作该笔记"),
   NOTE_ALREADY_LIKED("NOTE-20008", "您已经点赞过该文章"),
   NOTE_NOT_LIKED("NOTE-20009", "您未点赞该笔记，无法取消点赞"),
+  NOTE_ALREADY_COLLECTED("NOTE-20010", "您已经收藏过该笔记"),
   ;
 
   // 异常码
