@@ -21,6 +21,7 @@ import com.slilio.xiaohashu.note.biz.domain.mapper.NoteDOMapper;
 import com.slilio.xiaohashu.note.biz.domain.mapper.NoteLikeDOMapper;
 import com.slilio.xiaohashu.note.biz.domain.mapper.TopicDOMapper;
 import com.slilio.xiaohashu.note.biz.enums.*;
+import com.slilio.xiaohashu.note.biz.model.dto.CollectUnCollectNoteMqDTO;
 import com.slilio.xiaohashu.note.biz.model.dto.LikeUnlikeNoteMqDTO;
 import com.slilio.xiaohashu.note.biz.model.vo.*;
 import com.slilio.xiaohashu.note.biz.rpc.DistributedIdGeneratorRpcService;
@@ -909,7 +910,7 @@ public class NoteServiceImpl implements NoteService {
 
     // 1.校验收藏的笔记是否存在
     checkNoteIsExist(noteId);
-    // todo 2.判断目标笔记，是否已经收藏过
+    // 2.判断目标笔记，是否已经收藏过
     // 当前登录用户ID
     Long userId = LoginUserContextHolder.getUserId();
 
@@ -978,8 +979,93 @@ public class NoteServiceImpl implements NoteService {
       }
     }
 
-    // todo 3.更新用户zset收藏列表
-    // todo 4.发送MQ，将收藏数据落库
+    // 3.更新用户zset收藏列表
+    LocalDateTime now = LocalDateTime.now();
+    // Lua脚本处理
+    script.setScriptSource(
+        new ResourceScriptSource(
+            new ClassPathResource("/lua/note_collect_check_and_update_zset.lua")));
+    script.setResultType(Long.class);
+    result =
+        redisTemplate.execute(
+            script,
+            Collections.singletonList(userNoteCollectZSetKey),
+            noteId,
+            DateUtils.localDateTime2Timestamp(now));
+
+    // 若zset不存在，则需要重新初始化
+    if (Objects.equals(result, NoteCollectLuaResultEnum.NOT_EXIST.getCode())) {
+      // 重新初始化ZSET
+      // 查询当前用户最新收藏的300篇笔记
+      List<NoteCollectionDO> noteCollectionDOS =
+          noteCollectionDOMapper.selectCollectedByUserIdAndLimit(userId, 300);
+
+      // 保底1天+随机
+      long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+
+      DefaultRedisScript<Long> script2 = new DefaultRedisScript<>();
+      script2.setScriptSource(
+          new ResourceScriptSource(
+              new ClassPathResource("/lua/batch_add_note_collect_zset_and_expire.lua")));
+      script2.setResultType(Long.class);
+
+      // 若数据库存在历史收藏笔记，需要批量同步
+      if (CollUtil.isNotEmpty(noteCollectionDOS)) {
+        // 构建Lua参数
+        Object[] luaArgs = buildNoteCollectZSetLuaArgs(noteCollectionDOS, expireSeconds);
+        // 执行Lua脚本
+        redisTemplate.execute(script2, Collections.singletonList(userNoteCollectZSetKey), luaArgs);
+        // 再次调用note_collect_check_and_update_zset.lua脚本，将当前收藏的笔记添加到zset中
+        redisTemplate.execute(
+            script,
+            Collections.singletonList(userNoteCollectZSetKey),
+            noteId,
+            DateUtils.localDateTime2Timestamp(now));
+      } else {
+        // 若无历史收藏的笔记，则直接将当前收藏的笔记ID添加到ZSET中，随机过期时间
+        List<Object> luaArgs = Lists.newArrayList();
+        luaArgs.add(DateUtils.localDateTime2Timestamp(LocalDateTime.now())); // score：时间戳
+        luaArgs.add(noteId);
+        luaArgs.add(expireSeconds);
+
+        redisTemplate.execute(
+            script2, Collections.singletonList(userNoteCollectZSetKey), luaArgs.toArray());
+      }
+    }
+
+    // 4.发送MQ，将收藏数据落库
+    CollectUnCollectNoteMqDTO collectUnCollectNoteMqDTO =
+        CollectUnCollectNoteMqDTO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .type(CollectUnCollectNoteTypeEnum.COLLECT.getCode()) // 收藏笔记
+            .createTime(now)
+            .build();
+
+    // 构建消息对象，并将DTO转成Json字符串设置到消息体中
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(collectUnCollectNoteMqDTO)).build();
+    // 通过冒号连接, 可让 MQ 发送给主题 Topic 时，携带上标签 Tag
+    String destination = MQConstants.TOPIC_COLLECT_OR_UN_COLLECT + ":" + MQConstants.TAG_COLLECT;
+
+    String hashKey = String.valueOf(userId);
+
+    // 异步发送顺序MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==》【笔记收藏】MQ发送成功，SendResult：{}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==》【笔记收藏】MQ发送异常：", throwable);
+          }
+        });
 
     return Response.success();
   }
