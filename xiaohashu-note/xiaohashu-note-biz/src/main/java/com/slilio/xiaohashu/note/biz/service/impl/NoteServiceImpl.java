@@ -1071,6 +1071,73 @@ public class NoteServiceImpl implements NoteService {
   }
 
   /**
+   * 取消收藏笔记
+   *
+   * @param unCollectNoteReqVO
+   * @return
+   */
+  @Override
+  public Response<?> unCollectNote(UnCollectNoteReqVO unCollectNoteReqVO) {
+    // 笔记ID
+    Long noteId = unCollectNoteReqVO.getId();
+
+    // 1.校验笔记是否真实存在
+    checkNoteIsExist(noteId);
+    // 2.校验笔记是否被收藏过
+    Long userId = LoginUserContextHolder.getUserId();
+
+    // 布隆过滤器Key
+    String bloomUserNoteCollectListKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    script.setScriptSource(
+        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_uncollect_check.lua")));
+    script.setResultType(Long.class);
+
+    // 执行Lua脚本
+    Long result =
+        redisTemplate.execute(
+            script, Collections.singletonList(bloomUserNoteCollectListKey), noteId);
+    NoteUnCollectLuaResultEnum noteUnCollectLuaResultEnum =
+        NoteUnCollectLuaResultEnum.valueOf(result);
+
+    switch (noteUnCollectLuaResultEnum) {
+      // 布隆过滤器不存在
+      case NOT_EXISTS -> {
+        // 异步初始化布隆过滤器
+        threadPoolTaskExecutor.submit(
+            () -> {
+              // 过期时间：保底1天+随机秒数
+              long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+              batchAddNoteCollect2BloomAndExpire(
+                  userId, expireSeconds, bloomUserNoteCollectListKey);
+            });
+
+        // 从数据库中校验笔记是否被收藏
+        int count = noteCollectionDOMapper.selectCountByUserIdAndNoteId(userId, noteId);
+
+        // 未收藏，无法取消收藏，抛出异常
+        if (count == 0) {
+          throw new BizException(ResponseCodeEnum.NOTE_NOT_COLLECTED);
+        }
+      }
+      // 布隆过滤器校验目标未被收藏（判断绝对准确）
+      case NOTE_NOT_COLLECTED -> {
+        throw new BizException(ResponseCodeEnum.NOTE_NOT_COLLECTED);
+      }
+    }
+
+    // 3.删除ZSET中已收藏的笔记ID 由上述检测后，到此处，布隆过滤器已有收藏，可以直接删除ZSET中的笔记ID
+    // 用户收藏列表ZSet key
+    String userNoteCollectZSetKey = RedisKeyConstants.buildUserNoteCollectZSetKey(userId);
+
+    redisTemplate.opsForZSet().remove(userNoteCollectZSetKey, noteId);
+
+    // todo 4.发送MQ，数据更新落库
+    return Response.success();
+  }
+
+  /**
    * 异步初始化用户收藏笔记
    *
    * @param userId
