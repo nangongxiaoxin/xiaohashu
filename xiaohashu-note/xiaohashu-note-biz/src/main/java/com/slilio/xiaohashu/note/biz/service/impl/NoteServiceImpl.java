@@ -1133,7 +1133,40 @@ public class NoteServiceImpl implements NoteService {
 
     redisTemplate.opsForZSet().remove(userNoteCollectZSetKey, noteId);
 
-    // todo 4.发送MQ，数据更新落库
+    // 4.发送MQ，数据更新落库
+    CollectUnCollectNoteMqDTO collectUnCollectNoteMqDTO =
+        CollectUnCollectNoteMqDTO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .type(CollectUnCollectNoteTypeEnum.UN_COLLECT.getCode()) // 取消收藏笔记
+            .createTime(LocalDateTime.now())
+            .build();
+    // 构建消息对象
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(collectUnCollectNoteMqDTO)).build();
+
+    // 通过冒号连接, 可让 MQ 发送给主题 Topic 时，携带上标签 Tag
+    String destination = MQConstants.TOPIC_COLLECT_OR_UN_COLLECT + ":" + MQConstants.TAG_UN_COLLECT;
+
+    String hashKey = String.valueOf(userId);
+
+    // 异步发送顺序MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【笔记取消收藏】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==> 【笔记取消收藏】MQ 发送异常：", throwable);
+          }
+        });
+
     return Response.success();
   }
 

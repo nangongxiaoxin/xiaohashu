@@ -101,5 +101,34 @@ public class CollectUnCollectNoteConsumer implements RocketMQListener<Message> {
    *
    * @param bodyJsonStr
    */
-  private void handleUnCollectNoteTagMessage(String bodyJsonStr) {}
+  private void handleUnCollectNoteTagMessage(String bodyJsonStr) {
+    // 消息体JSON字符串转DTO
+    CollectUnCollectNoteMqDTO unCollectNoteMqDTO =
+        JsonUtils.parseObject(bodyJsonStr, CollectUnCollectNoteMqDTO.class);
+
+    if (Objects.isNull(unCollectNoteMqDTO)) {
+      return;
+    }
+
+    // 用户ID
+    Long userId = unCollectNoteMqDTO.getUserId();
+    // 收藏的笔记ID
+    Long noteId = unCollectNoteMqDTO.getNoteId();
+    // 操作的类型
+    Integer type = unCollectNoteMqDTO.getType();
+    // 收藏时间
+    LocalDateTime createTime = unCollectNoteMqDTO.getCreateTime();
+
+    // 构建DO对象
+    NoteCollectionDO noteCollectionDO =
+        NoteCollectionDO.builder()
+            .userId(userId)
+            .noteId(noteId)
+            .createTime(createTime)
+            .status(type)
+            .build();
+    int count = noteCollectionDOMapper.update2UnCollectByUserIdAndNoteId(noteCollectionDO);
+
+    // todo: 发送计数MQ
+  }
 }
