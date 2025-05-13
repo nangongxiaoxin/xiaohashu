@@ -9,10 +9,14 @@ import com.slilio.xiaohashu.note.biz.model.dto.CollectUnCollectNoteMqDTO;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.spring.annotation.ConsumeMode;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,11 +31,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CollectUnCollectNoteConsumer implements RocketMQListener<Message> {
   private final NoteCollectionDOMapper noteCollectionDOMapper;
+  private final RocketMQTemplate rocketMQTemplate;
   // 每秒创建5000个令牌
   private RateLimiter rateLimiter = RateLimiter.create(5000);
 
-  public CollectUnCollectNoteConsumer(NoteCollectionDOMapper noteCollectionDOMapper) {
+  public CollectUnCollectNoteConsumer(
+      NoteCollectionDOMapper noteCollectionDOMapper, RocketMQTemplate rocketMQTemplate) {
     this.noteCollectionDOMapper = noteCollectionDOMapper;
+    this.rocketMQTemplate = rocketMQTemplate;
   }
 
   @Override
@@ -93,7 +100,27 @@ public class CollectUnCollectNoteConsumer implements RocketMQListener<Message> {
     // 添加或者更新笔记收藏记录
     int count = noteCollectionDOMapper.insertOrUpdate(noteCollectionDO);
 
-    // todo：发送计数MQ
+    // 发送计数MQ
+    if (count == 0) return;
+    // 更新数据库成功后，发送计数MQ
+    org.springframework.messaging.Message<String> message =
+        MessageBuilder.withPayload(bodyJsonStr).build();
+
+    // 异步发送MQ消息
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_COUNT_NOTE_COLLECT,
+        message,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【计数: 笔记收藏】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.error("==> 【计数: 笔记收藏】MQ 发送异常: ", throwable);
+          }
+        });
   }
 
   /**
@@ -129,6 +156,26 @@ public class CollectUnCollectNoteConsumer implements RocketMQListener<Message> {
             .build();
     int count = noteCollectionDOMapper.update2UnCollectByUserIdAndNoteId(noteCollectionDO);
 
-    // todo: 发送计数MQ
+    // 发送计数MQ
+    if (count == 0) return;
+    // 更新数据库成功后，发送计数 MQ
+    org.springframework.messaging.Message<String> message =
+        MessageBuilder.withPayload(bodyJsonStr).build();
+
+    // 异步发送MQ消息
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_COUNT_NOTE_COLLECT,
+        message,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【计数: 笔记取消收藏】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.error("==> 【计数: 笔记取消收藏】MQ 发送异常: ", throwable);
+          }
+        });
   }
 }

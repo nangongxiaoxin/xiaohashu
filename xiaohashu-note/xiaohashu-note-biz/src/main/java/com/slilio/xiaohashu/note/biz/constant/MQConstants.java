@@ -22,6 +22,9 @@ public interface MQConstants {
   /** Topic：收藏、取消收藏共用一个 */
   String TOPIC_COLLECT_OR_UN_COLLECT = "CollectUnCollectTopic";
 
+  /** Topic: 计数-笔记收藏数 */
+  String TOPIC_COUNT_NOTE_COLLECT = "CountNoteCollectTopic";
+
   /** Tag：收藏 */
   String TAG_COLLECT = "Collect";
 

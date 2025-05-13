@@ -19,6 +19,9 @@ public class RedisKeyConstants {
   // Hash field：笔记点赞总数
   public static final String FIELD_LIKE_TOTAL = "likeTotal";
 
+  // Hash Field: 笔记收藏总数
+  public static final String FIELD_COLLECT_TOTAL = "collectTotal";
+
   public static String buildCountUserKey(Long userId) {
     return COUNT_USER_KEY_PREFIX + userId;
   }
