@@ -113,7 +113,7 @@ public class CountNoteCollectConsumer implements RocketMQListener<String> {
           }
         });
 
-    // 发送 MQ, 笔记收藏数据落库
+    // 发送 MQ, 笔记收藏数据落数据库
     Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countMap)).build();
 
     // 异步发送 MQ 消息
