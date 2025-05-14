@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -67,5 +69,26 @@ public class JsonUtils {
     // 将 JSON 字符串转换为 Map
     return OBJECT_MAPPER.readValue(
         jsonStr, OBJECT_MAPPER.getTypeFactory().constructMapType(Map.class, keyClass, valueClass));
+  }
+
+  /**
+   * 将json字符串解析为指定类型的List对象
+   *
+   * @param jsonStr
+   * @param clazz
+   * @return
+   * @param <T>
+   * @throws Exception
+   */
+  public static <T> List<T> parseList(String jsonStr, Class<T> clazz) throws Exception {
+    // 使用TypeReference指定List<T> 的泛型类型
+    return OBJECT_MAPPER.readValue(
+        jsonStr,
+        new TypeReference<List<T>>() {
+          @Override
+          public Type getType() {
+            return OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz);
+          }
+        });
   }
 }

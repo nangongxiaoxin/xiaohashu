@@ -18,4 +18,5 @@ public class CountLikeUnLikeNoteMqDTO {
   private Long noteId;
   private Integer type; // 0：取消点赞 1：点赞
   private LocalDateTime createTime;
+  private Long noteCreatorId;
 }

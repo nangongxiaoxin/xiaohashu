@@ -18,4 +18,5 @@ public class CollectUnCollectNoteMqDTO {
   private Long noteId;
   private Integer type; // 0：取消收藏；1：收藏
   private LocalDateTime createTime;
+  private Long noteCreatorId;
 }

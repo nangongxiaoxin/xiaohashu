@@ -1,11 +1,12 @@
 package com.slilio.xiaohashu.count.biz.consumer;
 
 import com.github.phantomthief.collection.BufferTrigger;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.count.biz.constant.MQConstants;
 import com.slilio.xiaohashu.count.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.count.biz.enums.LikeUnlikeNoteTypeEnum;
+import com.slilio.xiaohashu.count.biz.model.dto.AggregationCountLikeUnlikeNoteMqDTO;
 import com.slilio.xiaohashu.count.biz.model.dto.CountLikeUnLikeNoteMqDTO;
 import jakarta.annotation.Resource;
 import java.time.Duration;
@@ -69,13 +70,19 @@ public class CountNoteLikeConsumer implements RocketMQListener<String> {
 
     // 按分组汇总数据，统计出最终的计数
     // key为笔记ID，value为最终操作的计数
-    Map<Long, Integer> countMap = Maps.newHashMap();
+    List<AggregationCountLikeUnlikeNoteMqDTO> countList = Lists.newArrayList();
 
     for (Map.Entry<Long, List<CountLikeUnLikeNoteMqDTO>> entry : groupMap.entrySet()) {
+      // 笔记ID
+      Long noteId = entry.getKey();
+      // 笔记发布者ID
+      Long creatorId = null;
       List<CountLikeUnLikeNoteMqDTO> list = entry.getValue();
       // 最终的计数值，默认为0
       int finalCount = 0;
       for (CountLikeUnLikeNoteMqDTO countLikeUnLikeNoteMqDTO : list) {
+        // 设置笔记发布者用户ID
+        creatorId = countLikeUnLikeNoteMqDTO.getNoteCreatorId();
         // 获取操作类型
         Integer type = countLikeUnLikeNoteMqDTO.getType();
         // 根据操作类型获取对应的枚举类
@@ -91,28 +98,49 @@ public class CountNoteLikeConsumer implements RocketMQListener<String> {
         }
       }
       // 将分组后统计出的最终计数，存入countMap中
-      countMap.put(entry.getKey(), finalCount);
+      countList.add(
+          AggregationCountLikeUnlikeNoteMqDTO.builder()
+              .noteId(noteId)
+              .creatorId(creatorId)
+              .count(finalCount)
+              .build());
     }
-    log.info("==》【笔记点赞数】聚合后的计数数据：{}", JsonUtils.toJsonString(countMap));
+    log.info("==》【笔记点赞数】聚合后的计数数据：{}", JsonUtils.toJsonString(countList));
 
     // 更新Redis
-    countMap.forEach(
-        (k, v) -> {
-          // redisKey
-          String redisKey = RedisKeyConstants.buildCountNoteKey(k);
-          // 判断redis中hash是否存在
-          boolean isExisted = redisTemplate.hasKey(redisKey);
+    countList.forEach(
+        item -> {
+          // 笔记发布者ID
+          Long creatorId = item.getCreatorId();
+          Long noteId = item.getNoteId();
+          Integer count = item.getCount();
 
-          // 若存在则更新
-          // （因为缓存设置有过期时间，考虑到过期以后，缓存会被删除，这里需要判断下，存在才去更新，而初始化工作放在查询计数来做）
-          if (isExisted) {
-            // 对目标中hash中的点赞数字段进行计数操作
-            redisTemplate.opsForHash().increment(redisKey, RedisKeyConstants.FIELD_LIKE_TOTAL, v);
+          // 笔记维度计数RedisKey
+          String countNoteRedisKey = RedisKeyConstants.buildCountNoteKey(noteId);
+          // 判断Redis中Hash是否存在
+          boolean isCountNoteExisted = redisTemplate.hasKey(countNoteRedisKey);
+
+          // 若存在才会更新
+          // 因为缓存设置的有过期时间，考虑到过期后，缓存才会被删除，这里需要判断，存在才去更新，初始化工作在查询计数来做
+          if (isCountNoteExisted) {
+            // redis用户点赞计数
+            redisTemplate
+                .opsForHash()
+                .increment(countNoteRedisKey, RedisKeyConstants.FIELD_LIKE_TOTAL, count);
+          }
+
+          // 更新redis用户维度计数
+          String countUserRedisKey = RedisKeyConstants.buildCountUserKey(creatorId);
+          boolean isCountUserExisted = redisTemplate.hasKey(countUserRedisKey);
+          if (isCountUserExisted) {
+            redisTemplate
+                .opsForHash()
+                .increment(countUserRedisKey, RedisKeyConstants.FIELD_LIKE_TOTAL, count);
           }
         });
 
     // 发送MQ，笔记点赞数落库
-    Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countMap)).build();
+    Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(countList)).build();
     // 异步发送MQ消息
     rocketMQTemplate.asyncSend(
         MQConstants.TOPIC_COUNT_NOTE_LIKE_2_DB,
