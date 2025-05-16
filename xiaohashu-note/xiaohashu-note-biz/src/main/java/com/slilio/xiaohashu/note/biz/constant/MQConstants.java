@@ -30,4 +30,13 @@ public interface MQConstants {
 
   /** Tag：取消收藏 */
   String TAG_UN_COLLECT = "UnCollect";
+
+  /** Topic: 笔记操作（发布、删除） */
+  String TOPIC_NOTE_OPERATE = "NoteOperateTopic";
+
+  /** Tag：笔记发布 */
+  String TAG_NOTE_PUBLISH = "publishNote";
+
+  /** Tag：笔记删除 */
+  String TAG_NOTE_DELETE = "deleteNote";
 }
