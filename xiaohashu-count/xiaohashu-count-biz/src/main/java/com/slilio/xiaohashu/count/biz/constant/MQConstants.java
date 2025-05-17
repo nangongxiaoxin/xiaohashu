@@ -15,7 +15,14 @@ public interface MQConstants {
   String TOPIC_COUNT_NOTE_LIKE = "CountNoteLikeTopic"; // topic：计数 - 笔记点赞数
 
   String TOPIC_COUNT_NOTE_LIKE_2_DB = "CountNoteLike2DBTopic"; // Topic：计数 - 笔记点赞数落库
+
   String TOPIC_COUNT_NOTE_COLLECT = "CountNoteCollectTopic"; // topic:计数-收藏服务
 
   String TOPIC_COUNT_NOTE_COLLECT_2_DB = "CountNoteCollect2DBTTopic"; //  Topic: 计数 - 笔记收藏数落库
+
+  String TOPIC_NOTE_OPERATE = "NoteOperateTopic"; // 笔记删除、发布
+
+  String TAG_NOTE_NOTE_PUBLISH = "publishNote"; // tag：笔记发布
+
+  String TAG_NOTE_NOTE_DELETE = "deleteNote"; // tag：笔记删除
 }
