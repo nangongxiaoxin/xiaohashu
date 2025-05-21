@@ -6,4 +6,7 @@ package com.slilio.xiaohashu.data.align.constant;
 public interface MQConstants {
   // topic: 计数-笔记点赞数
   String TOPIC_COUNT_NOTE_LIKE = "CountNoteLikeTopic";
+
+  // topic：计数-笔记收藏数
+  String TOPIC_COUNT_NOTE_COLLECT = "CountNoteCollectTopic";
 }
