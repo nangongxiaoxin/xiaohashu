@@ -4,7 +4,7 @@ import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.data.align.constant.MQConstants;
 import com.slilio.xiaohashu.data.align.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.data.align.constant.TableConstants;
-import com.slilio.xiaohashu.data.align.domain.mapper.InsertRecordMapper;
+import com.slilio.xiaohashu.data.align.domain.mapper.InsertMapper;
 import com.slilio.xiaohashu.data.align.model.dto.LikeUnlikeNoteMqDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDate;
@@ -38,7 +38,7 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
 
   @Resource private RedisTemplate<String, Object> redisTemplate;
   @Resource private TransactionTemplate transactionTemplate;
-  @Resource private InsertRecordMapper insertRecordMapper;
+  @Resource private InsertMapper insertMapper;
 
   /** 表总分片数 */
   @Value("${table.shards}")
@@ -88,9 +88,9 @@ public class TodayNoteLikeIncrementData2DBConsumer implements RocketMQListener<S
               // 将日增量变更数据，分别写入两张表
               // - t_data_align_note_like_count_temp_日期_分片序号
               // - t_data_align_user_like_count_temp_日期_分片序号
-              insertRecordMapper.insert2DataAlignNoteLikeCountTempTable(
+              insertMapper.insert2DataAlignNoteLikeCountTempTable(
                   TableConstants.buildTableNameSuffix(date, noteIdHashKey), noteId);
-              insertRecordMapper.insert2DataAlignUserLikeCountTempTable(
+              insertMapper.insert2DataAlignUserLikeCountTempTable(
                   TableConstants.buildTableNameSuffix(date, userIdHashKey), noteCreatorId);
 
               return true;
