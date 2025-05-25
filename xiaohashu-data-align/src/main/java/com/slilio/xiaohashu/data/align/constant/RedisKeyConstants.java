@@ -37,6 +37,26 @@ public class RedisKeyConstants {
   // Hash field：关注总数
   public static final String FIELD_FOLLOWING_TOTAL = "followingTotal";
 
+  // 笔记维度计数key前缀
+  private static final String COUNT_NOTE_KEY_PREFIX = "count:note:";
+
+  // hash field：笔记点赞总数
+  public static final String FIELD_LIKE_TOTAL = "likeTotal";
+
+  // hash field：粉丝总数
+  public static final String FIELD_FANS_TOTAL = "fansTotal";
+
+  // hash field：笔记收藏总数
+  public static final String FIELD_COLLECT_TOTAL = "collectTotal";
+
+  // hash field：笔记发布总数
+  public static final String FIELD_NOTE_TOTAL = "noteTotal";
+
+  // 构建笔记维度计数 key
+  public static String buildCountNoteKey(Long noteId) {
+    return COUNT_NOTE_KEY_PREFIX + noteId;
+  }
+
   // 布隆过滤器：日增量变更数据，用户笔记发布，删除 前缀
   public static String buildBloomUserNoteOperateListKey(String date) {
     return BLOOM_TODAY_USER_NOTE_OPERATE_LIST_KEY + date;
