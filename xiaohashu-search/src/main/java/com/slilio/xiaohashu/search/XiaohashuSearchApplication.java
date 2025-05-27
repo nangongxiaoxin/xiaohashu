@@ -1,0 +1,14 @@
+package com.slilio.xiaohashu.search;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * @Author: slilio @CreateTime: 2025-05-27 @Description: 启动类 @Version: 1.0
+ */
+@SpringBootApplication
+public class XiaohashuSearchApplication {
+  public static void main(String[] args) {
+    SpringApplication.run(XiaohashuSearchApplication.class, args);
+  }
+}

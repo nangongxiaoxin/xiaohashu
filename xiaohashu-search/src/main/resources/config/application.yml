@@ -1,0 +1,5 @@
+server:
+  port: 8092 #项目启动端口
+spring:
+  profiles:
+    active: dev #默认激活环境

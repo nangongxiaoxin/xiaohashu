@@ -33,6 +33,7 @@
         <module>xiaohashu-user-relation</module>
         <module>xiaohashu-count</module>
         <module>xiaohashu-data-align</module>
+        <module>xiaohashu-search</module>
     </modules>
 
     <properties>
