@@ -22,4 +22,6 @@ public class SearchNoteRspVO {
   private String nickname; // 发布者昵称
   private LocalDateTime updateTime; // 最后一次编辑时间
   private String likeTotal; // 被总点赞数
+  private String commentTotal; // 被总评论数
+  private String collectTotal; // 被总收藏数
 }
