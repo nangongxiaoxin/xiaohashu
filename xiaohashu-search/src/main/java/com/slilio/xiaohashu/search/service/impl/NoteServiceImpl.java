@@ -4,7 +4,9 @@ import cn.hutool.core.collection.CollUtil;
 import com.google.common.collect.Lists;
 import com.slilio.framework.common.constant.DateConstants;
 import com.slilio.framework.common.response.PageResponse;
+import com.slilio.framework.common.util.DateUtils;
 import com.slilio.framework.common.util.NumberUtils;
+import com.slilio.xiaohashu.search.enums.NotePublishTimeRangeEnum;
 import com.slilio.xiaohashu.search.enums.NoteSortTypeEnum;
 import com.slilio.xiaohashu.search.index.NoteIndex;
 import com.slilio.xiaohashu.search.model.vo.SearchNoteReqVO;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
@@ -61,6 +64,8 @@ public class NoteServiceImpl implements NoteService {
     Integer sort = searchNoteReqVO.getSort();
     // 笔记类型
     Integer type = searchNoteReqVO.getType();
+    // 发布时间范围
+    Integer publishTimeRange = searchNoteReqVO.getPublishTimeRange();
 
     // 构建SearchRequest，指定要查询的索引
     SearchRequest searchRequest = new SearchRequest(NoteIndex.NAME);
@@ -79,6 +84,35 @@ public class NoteServiceImpl implements NoteService {
     // 若勾选了笔记类型，添加过滤条件
     if (Objects.nonNull(type)) {
       boolQueryBuilder.filter(QueryBuilders.termQuery(NoteIndex.FIELD_NOTE_TYPE, type));
+    }
+
+    // 按发布时间范围过滤
+
+    NotePublishTimeRangeEnum notePublishTimeRangeEnum =
+        NotePublishTimeRangeEnum.valueOf(publishTimeRange);
+
+    if (Objects.nonNull(publishTimeRange)) {
+      // 结束时间
+      String endTime = LocalDateTime.now().format(DateConstants.DATE_FORMAT_Y_M_D_H_M_S);
+      // 开始时间
+      String startTime = null;
+
+      switch (notePublishTimeRangeEnum) {
+        case DAY ->
+            startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusDays(1)); // 一天前
+        case WEEK ->
+            startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusWeeks(1)); // 一周前
+        case HALF_YEAR ->
+            startTime = DateUtils.localDateTime2String(LocalDateTime.now().minusMonths(6)); // 半年前
+      }
+      // 设置时间范围
+      if (StringUtils.isNotBlank(startTime)) {
+        boolQueryBuilder.filter(
+            QueryBuilders.rangeQuery(NoteIndex.FIELD_NOTE_CREATE_TIME)
+                .gte(startTime) // 大于等于
+                .lte(endTime) // 小于等于
+            );
+      }
     }
 
     // 排序
@@ -247,7 +281,7 @@ public class NoteServiceImpl implements NoteService {
                 .highlightTitle(highlightedTitle)
                 .avatar(avatar)
                 .nickname(nickname)
-                .updateTime(updateTime)
+                .updateTime(DateUtils.formatRelativeTime(updateTime))
                 .likeTotal(NumberUtils.formatNumberString(likeTotal))
                 .commentTotal(NumberUtils.formatNumberString(commentTotal))
                 .collectTotal(NumberUtils.formatNumberString(collectTotal))
