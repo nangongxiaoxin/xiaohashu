@@ -6,6 +6,7 @@ import com.slilio.xiaohashu.data.align.constant.TableConstants;
 import com.slilio.xiaohashu.data.align.domain.mapper.DeleteMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.SelectMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.UpdateMapper;
+import com.slilio.xiaohashu.data.align.rpc.SearchRpcService;
 import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import jakarta.annotation.Resource;
@@ -27,6 +28,7 @@ public class NoteLikeCountShardingXxlJob {
   @Resource private UpdateMapper updateMapper;
   @Resource private RedisTemplate<String, Object> redisTemplate;
   @Resource private DeleteMapper deleteMapper;
+  @Resource private SearchRpcService searchRpcService;
 
   /** 分片广播任务 */
   @XxlJob("noteLikeCountShardingJobHandler")
@@ -87,6 +89,9 @@ public class NoteLikeCountShardingXxlJob {
                     .put(redisKey, RedisKeyConstants.FIELD_LIKE_TOTAL, likeTotal);
               }
             }
+
+            // 远程RPC，调用搜索服务
+            searchRpcService.rebuildNoteDocument(noteId);
           });
 
       // 4. 批量物理删除这一批次记录

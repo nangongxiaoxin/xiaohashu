@@ -6,6 +6,7 @@ import com.slilio.xiaohashu.data.align.constant.TableConstants;
 import com.slilio.xiaohashu.data.align.domain.mapper.DeleteMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.SelectMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.UpdateMapper;
+import com.slilio.xiaohashu.data.align.rpc.SearchRpcService;
 import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import jakarta.annotation.Resource;
@@ -26,6 +27,7 @@ public class FansCountShardingXxlJob {
   @Resource private UpdateMapper updateMapper;
   @Resource private DeleteMapper deleteMapper;
   @Resource private RedisTemplate<String, Object> redisTemplate;
+  @Resource private SearchRpcService searchRpcService;
 
   @XxlJob("fansCountShardingJobHandler")
   public void fansCountShardingJobHandler() throws Exception {
@@ -82,6 +84,8 @@ public class FansCountShardingXxlJob {
                     .put(redisKey, RedisKeyConstants.FIELD_FANS_TOTAL, fansTotal);
               }
             }
+            // 远程RPC，调用搜索服务
+            searchRpcService.rebuildUserDocument(userId);
           });
 
       // 批量物理删除这一批次记录

@@ -6,6 +6,7 @@ import com.slilio.xiaohashu.data.align.constant.TableConstants;
 import com.slilio.xiaohashu.data.align.domain.mapper.DeleteMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.SelectMapper;
 import com.slilio.xiaohashu.data.align.domain.mapper.UpdateMapper;
+import com.slilio.xiaohashu.data.align.rpc.SearchRpcService;
 import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
 import jakarta.annotation.Resource;
@@ -26,6 +27,7 @@ public class NoteCollectCountShardingXxlJob {
   @Resource private UpdateMapper updateMapper;
   @Resource private DeleteMapper deleteMapper;
   @Resource private RedisTemplate<String, Object> redisTemplate;
+  @Resource private SearchRpcService searchRpcService;
 
   @XxlJob("noteCollectCountShardingJobHandler")
   public void noteCollectCountShardingJobHandler() throws Exception {
@@ -84,6 +86,8 @@ public class NoteCollectCountShardingXxlJob {
                     .put(redisKey, RedisKeyConstants.FIELD_COLLECT_TOTAL, collectTotal);
               }
             }
+            // 远程RPC，调用搜索服务
+            searchRpcService.rebuildNoteDocument(noteId);
           });
 
       // 4. 批量物理删除这一批次记录
