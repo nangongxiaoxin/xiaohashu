@@ -5,6 +5,12 @@
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-auth/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-auth/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/xiaohashu-comment-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/xiaohashu-comment-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/xiaohashu-comment-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-comment/xiaohashu-comment-biz/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-count/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-count/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-count/xiaohashu-count-api/src/main/java" charset="UTF-8" />
@@ -23,6 +29,8 @@
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/xiaohashu-comment-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-common/xiaohashu-comment-biz/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-biz-context/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-biz-context/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/xiaohashu-framework/xiaohashu-spring-boot-starter-biz-operationlog/src/main/java" charset="UTF-8" />
