@@ -49,5 +49,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-cassandra</artifactId>
         </dependency>
+
+        <!-- 业务接口日志组件 -->
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-spring-boot-starter-biz-operationlog</artifactId>
+        </dependency>
+
+        <!-- Jackson 组件 -->
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
+        </dependency>
     </dependencies>
 </project>
