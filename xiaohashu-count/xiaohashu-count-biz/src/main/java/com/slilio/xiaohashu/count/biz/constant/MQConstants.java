@@ -25,4 +25,6 @@ public interface MQConstants {
   String TAG_NOTE_NOTE_PUBLISH = "publishNote"; // tag：笔记发布
 
   String TAG_NOTE_NOTE_DELETE = "deleteNote"; // tag：笔记删除
+
+  String TOPIC_LIKE_OR_UNLIKE = "LikeUnlikeTopic"; // topic:计数-笔记点赞数
 }

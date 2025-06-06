@@ -41,4 +41,12 @@ public interface NoteLikeDOMapper {
    * @return
    */
   int update2UnlikeByUserIdAndNoteId(NoteLikeDO noteLikeDO);
+
+  /**
+   * 批量插入更新
+   *
+   * @param noteLikeDOS
+   * @return
+   */
+  int batchInsertOrUpdate(@Param("noteLikeDOS") List<NoteLikeDO> noteLikeDOS);
 }

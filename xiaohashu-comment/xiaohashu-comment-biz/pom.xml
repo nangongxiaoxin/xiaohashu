@@ -103,6 +103,16 @@
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-client</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-kv-api</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

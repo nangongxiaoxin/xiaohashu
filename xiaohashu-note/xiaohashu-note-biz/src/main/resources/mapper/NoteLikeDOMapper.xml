@@ -104,6 +104,17 @@
         on duplicate KEY update create_time = #{createTime},
                                 status      = #{status};
     </insert>
+
+    <insert id="batchInsertOrUpdate" parameterType="list">
+        INSERT INTO t_note_like (user_id, note_id, status, create_time)
+        VALUES
+        <foreach item="item" collection="noteLikeDOS" separator=",">
+            (#{item.userId}, #{item.noteId}, #{item.status}, #{item.createTime})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        status = VALUES(status)
+    </insert>
+
     <update id="updateByPrimaryKeySelective" parameterType="com.slilio.xiaohashu.note.biz.domain.dataobject.NoteLikeDO">
         update t_note_like
         <set>

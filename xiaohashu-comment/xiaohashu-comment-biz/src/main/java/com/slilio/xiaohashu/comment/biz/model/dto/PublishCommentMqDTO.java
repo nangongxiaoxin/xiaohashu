@@ -25,4 +25,6 @@ public class PublishCommentMqDTO {
   private LocalDateTime createTime; // 发布时间
 
   private Long creatorId; // 发布者ID
+
+  private Long commentId; // 评论ID
 }

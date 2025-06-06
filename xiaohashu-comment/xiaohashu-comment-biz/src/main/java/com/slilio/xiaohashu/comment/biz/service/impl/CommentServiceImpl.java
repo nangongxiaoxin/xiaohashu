@@ -8,6 +8,7 @@ import com.slilio.xiaohashu.comment.biz.constant.MQConstants;
 import com.slilio.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.slilio.xiaohashu.comment.biz.model.vo.PublishCommentReqVO;
 import com.slilio.xiaohashu.comment.biz.retry.SendMqRetryHelper;
+import com.slilio.xiaohashu.comment.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.comment.biz.service.CommentService;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
@@ -25,6 +26,7 @@ public class CommentServiceImpl implements CommentService {
 
   @Resource private RocketMQTemplate rocketMQTemplate;
   @Resource private SendMqRetryHelper sendMqRetryHelper;
+  @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
 
   /**
    * 发布评论
@@ -46,6 +48,9 @@ public class CommentServiceImpl implements CommentService {
     // 发布者ID
     Long creatorId = LoginUserContextHolder.getUserId();
 
+    // RPC：调用分布式ID生成服务，生成评论ID
+    String commentId = distributedIdGeneratorRpcService.generateCommentId();
+
     // 发送MQ
     // 构建消息体DTO
     PublishCommentMqDTO publishCommentMqDTO =
@@ -56,6 +61,7 @@ public class CommentServiceImpl implements CommentService {
             .replyCommentId(publishCommentReqVO.getReplyCommentId())
             .createTime(LocalDateTime.now())
             .creatorId(creatorId)
+            .commentId(Long.valueOf(commentId))
             .build();
 
     // 发送MQ（包含重试策略）

@@ -28,10 +28,11 @@ import org.springframework.stereotype.Component;
 /**
  * @Author: slilio @CreateTime: 2025-05-08 @Description: 笔记点赞计数消费者 @Version: 1.0
  */
+// todo：并发优化
 @Component
 @RocketMQMessageListener(
-    consumerGroup = "xiaohashu_group_" + MQConstants.TOPIC_COUNT_NOTE_LIKE, // 组
-    topic = MQConstants.TOPIC_COUNT_NOTE_LIKE // 主题
+    consumerGroup = "xiaohashu_group_" + MQConstants.TOPIC_LIKE_OR_UNLIKE, // 组
+    topic = MQConstants.TOPIC_LIKE_OR_UNLIKE // 主题
     )
 @Slf4j
 public class CountNoteLikeConsumer implements RocketMQListener<String> {
