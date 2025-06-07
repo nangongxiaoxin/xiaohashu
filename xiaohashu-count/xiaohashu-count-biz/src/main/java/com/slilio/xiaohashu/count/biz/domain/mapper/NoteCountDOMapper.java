@@ -34,4 +34,13 @@ public interface NoteCountDOMapper {
    */
   int insertOrUpdateCollectTotalByNoteId(
       @Param("count") Integer count, @Param("noteId") Long noteId);
+
+  /**
+   * 添加记录或者更新笔记评论数
+   *
+   * @param count
+   * @param noteId
+   * @return
+   */
+  int insertOrUpdateCommentTotalByNoteId(@Param("count") int count, @Param("noteId") Long noteId);
 }
