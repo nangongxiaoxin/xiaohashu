@@ -29,4 +29,6 @@ public interface MQConstants {
   String TOPIC_LIKE_OR_UNLIKE = "LikeUnlikeTopic"; // topic:计数-笔记点赞数
 
   String TOPIC_COUNT_NOTE_COMMENT = "CountNoteCommentTopic"; // topic: 笔记评论总数计数
+
+  String TOPIC_COMMENT_HEAT_UPDATE = "CommentHeatUpdateTopic"; // topic:评论热度值更新
 }

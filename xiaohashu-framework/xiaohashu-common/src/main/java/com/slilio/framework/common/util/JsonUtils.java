@@ -4,10 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
@@ -88,6 +90,18 @@ public class JsonUtils {
           @Override
           public Type getType() {
             return OBJECT_MAPPER.getTypeFactory().constructCollectionType(List.class, clazz);
+          }
+        });
+  }
+
+  public static <T> Set<T> parseSet(String jsonStr, Class<T> clazz) throws Exception {
+    // 使用TypeReference指定的Set<T>的泛型类型
+    return OBJECT_MAPPER.readValue(
+        jsonStr,
+        new TypeReference<>() {
+          @Override
+          public CollectionType getType() {
+            return OBJECT_MAPPER.getTypeFactory().constructCollectionType(Set.class, clazz);
           }
         });
   }

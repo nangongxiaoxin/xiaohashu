@@ -113,6 +113,12 @@
             <groupId>com.slilio</groupId>
             <artifactId>xiaohashu-kv-api</artifactId>
         </dependency>
+
+        <!-- 快手 Buffer Trigger -->
+        <dependency>
+            <groupId>com.github.phantomthief</groupId>
+            <artifactId>buffer-trigger</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
