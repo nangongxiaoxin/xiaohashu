@@ -32,7 +32,5 @@ public class RedisTemplateConfig {
 
     redisTemplate.afterPropertiesSet();
     return redisTemplate;
-
-    //todo到这里
   }
 }
