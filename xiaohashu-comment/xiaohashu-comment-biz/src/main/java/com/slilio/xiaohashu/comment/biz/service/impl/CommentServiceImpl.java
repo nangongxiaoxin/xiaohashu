@@ -2,10 +2,13 @@ package com.slilio.xiaohashu.comment.biz.service.impl;
 
 import com.google.common.base.Preconditions;
 import com.slilio.framework.biz.context.holder.LoginUserContextHolder;
+import com.slilio.framework.common.response.PageResponse;
 import com.slilio.framework.common.response.Response;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.comment.biz.constant.MQConstants;
 import com.slilio.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
+import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentItemRspVO;
+import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentPageListReqVO;
 import com.slilio.xiaohashu.comment.biz.model.vo.PublishCommentReqVO;
 import com.slilio.xiaohashu.comment.biz.retry.SendMqRetryHelper;
 import com.slilio.xiaohashu.comment.biz.rpc.DistributedIdGeneratorRpcService;
@@ -69,5 +72,17 @@ public class CommentServiceImpl implements CommentService {
         MQConstants.TOPIC_PUBLISH_COMMENT, JsonUtils.toJsonString(publishCommentMqDTO));
 
     return Response.success();
+  }
+
+  /**
+   * 评论列表分页查询
+   *
+   * @param findCommentPageListReqVO
+   * @return
+   */
+  @Override
+  public PageResponse<FindCommentItemRspVO> findCommentPageList(
+      FindCommentPageListReqVO findCommentPageListReqVO) {
+    return null;
   }
 }

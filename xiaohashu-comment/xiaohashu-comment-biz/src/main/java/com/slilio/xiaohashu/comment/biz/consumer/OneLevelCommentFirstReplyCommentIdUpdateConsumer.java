@@ -1,21 +1,28 @@
 package com.slilio.xiaohashu.comment.biz.consumer;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.RandomUtil;
 import com.github.phantomthief.collection.BufferTrigger;
 import com.google.common.collect.Lists;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.comment.biz.constant.MQConstants;
 import com.slilio.xiaohashu.comment.biz.constant.RedisKeyConstants;
+import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentDO;
+import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.slilio.xiaohashu.comment.biz.enums.CommentLevelEnum;
 import com.slilio.xiaohashu.comment.biz.model.dto.CountPublishCommentMqDTO;
 import jakarta.annotation.Resource;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 /**
@@ -38,6 +45,10 @@ public class OneLevelCommentFirstReplyCommentIdUpdateConsumer implements RocketM
           .linger(Duration.ofSeconds(1)) // 等待时间
           .setConsumerEx(this::consumeMessage) // 消费方法
           .build();
+  @Resource private CommentDOMapper commentDOMapper;
+
+  @Resource(name = "taskExecutor")
+  private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
   @Override
   public void onMessage(String body) {
@@ -93,8 +104,74 @@ public class OneLevelCommentFirstReplyCommentIdUpdateConsumer implements RocketM
 
     // 存在一级评论ID，说明表中对应记录的first_reply_comment_id已经有值
     if (CollUtil.isNotEmpty(missingCommentIds)) {
-      // todo : 不存在的，则需进一步查询数据库来确定，是否需要更新记录对应的first_reply_comment_id值
+      // 不存在的，则需进一步查询数据库来确定，是否需要更新记录对应的first_reply_comment_id值
+      // 批量去数据库中查询
+      List<CommentDO> commentDOS = commentDOMapper.selectByCommentIds(missingCommentIds);
 
+      // 异步将first_reply_comment_id不为0的一级评论ID，同步到redis中
+      threadPoolTaskExecutor.submit(
+          () -> {
+            List<Long> needSyncCommentIds =
+                commentDOS.stream()
+                    .filter(commentDO -> commentDO.getFirstReplyCommentId() != 0)
+                    .map(CommentDO::getId)
+                    .toList();
+
+            sync2Redis(needSyncCommentIds);
+          });
+
+      // 过滤出值为0的，都需要更新其first_reply_comment_id
+      List<CommentDO> needUpdateCommentDOS =
+          commentDOS.stream().filter(commentDO -> commentDO.getFirstReplyCommentId() == 0).toList();
+
+      needUpdateCommentDOS.forEach(
+          needUpdateCommentDO -> {
+            // 一级评论
+            Long needUpdateCommentId = needUpdateCommentDO.getId();
+
+            // 查询数据库，拿到一级评论最早回复的那条评论
+            CommentDO earliestCommentDO =
+                commentDOMapper.selectEarliestCommentByParentId(needUpdateCommentId);
+
+            if (Objects.nonNull(earliestCommentDO)) {
+              // 最早回复的那条评论ID
+              Long earliestCommentId = earliestCommentDO.getId();
+
+              // 更新其第一级评论的first_reply_comment_id
+              commentDOMapper.updateFirstReplyCommentIdByPrimaryKey(
+                  earliestCommentId, needUpdateCommentId);
+
+              // 异步同步到Redis
+              threadPoolTaskExecutor.submit(
+                  () -> sync2Redis(Lists.newArrayList(needUpdateCommentId)));
+            }
+          });
     }
+  }
+
+  /**
+   * 同步到redis中
+   *
+   * @param needSyncCommentIds
+   */
+  private void sync2Redis(List<Long> needSyncCommentIds) {
+    // 获取 valueOperations
+    ValueOperations<String, Object> valueOperations = redisTemplate.opsForValue();
+
+    // 使用redisTemplate的管道模式，允许在一个操作中批量发送多个命令，防止频繁操作redis
+    redisTemplate.executePipelined(
+        (RedisCallback<?>)
+            (connection) -> {
+              needSyncCommentIds.forEach(
+                  needSyncCommentId -> {
+                    // 构建redisKey
+                    String key = RedisKeyConstants.buildHaveFirstReplyCommentKey(needSyncCommentId);
+
+                    // 批量设置值并指定过期时间（5小时以上）
+                    valueOperations.set(
+                        key, 1, RandomUtil.randomInt(5 * 60 * 60), TimeUnit.SECONDS);
+                  });
+              return null;
+            });
   }
 }

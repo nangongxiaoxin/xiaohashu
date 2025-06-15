@@ -1,6 +1,9 @@
 package com.slilio.xiaohashu.comment.biz.service;
 
+import com.slilio.framework.common.response.PageResponse;
 import com.slilio.framework.common.response.Response;
+import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentItemRspVO;
+import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentPageListReqVO;
 import com.slilio.xiaohashu.comment.biz.model.vo.PublishCommentReqVO;
 
 /**
@@ -15,4 +18,13 @@ public interface CommentService {
    * @return
    */
   Response<?> publishComment(PublishCommentReqVO publishCommentReqVO);
+
+  /**
+   * 评论列表分页查询
+   *
+   * @param findCommentPageListReqVO
+   * @return
+   */
+  PageResponse<FindCommentItemRspVO> findCommentPageList(
+      FindCommentPageListReqVO findCommentPageListReqVO);
 }
