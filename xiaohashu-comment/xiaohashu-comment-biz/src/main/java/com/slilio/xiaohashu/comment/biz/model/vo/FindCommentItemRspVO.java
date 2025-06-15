@@ -22,5 +22,5 @@ public class FindCommentItemRspVO {
   private String createTime; // 发布时间
   private Long likeTotal; // 被点赞数
   private Long childCommentTotal; // 二级评论总数
-  private FindCommentItemRspVO firstChildComment; // 最早回复的评论
+  private FindCommentItemRspVO firstReplyComment; // 最早回复的评论
 }
