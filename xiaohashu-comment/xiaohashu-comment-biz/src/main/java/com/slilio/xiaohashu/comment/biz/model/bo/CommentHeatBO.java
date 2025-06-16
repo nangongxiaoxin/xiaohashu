@@ -15,4 +15,5 @@ import lombok.NoArgsConstructor;
 public class CommentHeatBO {
   private Long id; // 评论ID
   private Double heat; // 热度值
+  private Long noteId; // 笔记ID
 }

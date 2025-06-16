@@ -482,28 +482,28 @@ public class CommentServiceImpl implements CommentService {
   /**
    * 同步热点评论到redis
    *
-   * @param commentZSetKey
+   * @param key
    * @param noteId
    */
-  private void syncHeatComments2Redis(String commentZSetKey, Long noteId) {
+  private void syncHeatComments2Redis(String key, Long noteId) {
     List<CommentDO> commentDOS = commentDOMapper.selectHeatComments(noteId);
     if (CollUtil.isNotEmpty(commentDOS)) {
-      // 使用Redis Pipeline提升写入性能
+      // 使用 Redis Pipeline 提升写入性能
       redisTemplate.executePipelined(
           (RedisCallback<Object>)
               connection -> {
                 ZSetOperations<String, Object> zSetOps = redisTemplate.opsForZSet();
 
-                // 遍历评论数据并批量写入ZSet
+                // 遍历评论数据并批量写入 ZSet
                 for (CommentDO commentDO : commentDOS) {
                   Long commentId = commentDO.getId();
                   Double commentHeat = commentDO.getHeat();
-                  zSetOps.add(commentZSetKey, commentId, commentHeat);
+                  zSetOps.add(key, commentId, commentHeat);
                 }
 
                 // 设置随机过期时间，单位：秒
-                int randomExpiryTime = RandomUtil.randomInt(5 * 5 * 60); // 5小时内
-                redisTemplate.expire(commentZSetKey, randomExpiryTime, TimeUnit.SECONDS);
+                int randomExpiryTime = RandomUtil.randomInt(5 * 60 * 60); // 5小时以内
+                redisTemplate.expire(key, randomExpiryTime, TimeUnit.SECONDS);
                 return null; // 无返回值
               });
     }
