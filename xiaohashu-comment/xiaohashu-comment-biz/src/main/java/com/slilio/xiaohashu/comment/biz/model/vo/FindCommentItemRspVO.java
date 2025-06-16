@@ -23,4 +23,5 @@ public class FindCommentItemRspVO {
   private Long likeTotal; // 被点赞数
   private Long childCommentTotal; // 二级评论总数
   private FindCommentItemRspVO firstReplyComment; // 最早回复的评论
+  private Double heat; // 热度值
 }

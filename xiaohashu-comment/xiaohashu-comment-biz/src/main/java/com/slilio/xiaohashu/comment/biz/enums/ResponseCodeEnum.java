@@ -14,8 +14,9 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
   SYSTEM_ERROR("COMMENT-10000", "出错了，后台小哥正在修复中..."),
   PARAM_NOT_VALID("COMMENT-10001", "参数错误"),
 
-// ----------- 业务异常状态码 -----------
-;
+  // ----------- 业务异常状态码 -----------
+  COMMENT_NOT_FOUND("COMMENT-20001", "此评论不存在"),
+  ;
 
   private final String errorCode;
   private final String errorMessage;
