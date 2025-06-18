@@ -3,9 +3,7 @@ package com.slilio.xiaohashu.comment.biz.controller;
 import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.PageResponse;
 import com.slilio.framework.common.response.Response;
-import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentItemRspVO;
-import com.slilio.xiaohashu.comment.biz.model.vo.FindCommentPageListReqVO;
-import com.slilio.xiaohashu.comment.biz.model.vo.PublishCommentReqVO;
+import com.slilio.xiaohashu.comment.biz.model.vo.*;
 import com.slilio.xiaohashu.comment.biz.service.CommentService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -36,5 +34,12 @@ public class CommentController {
   public PageResponse<FindCommentItemRspVO> findCommentPageList(
       @Validated @RequestBody FindCommentPageListReqVO findCommentPageListReqVO) {
     return commentService.findCommentPageList(findCommentPageListReqVO);
+  }
+
+  @PostMapping("/child/list")
+  @ApiOperationLog(description = "二级评论分页查询")
+  public PageResponse<FindChildCommentItemRspVO> findChildCommentPageList(
+      @Validated @RequestBody FindChildCommentPageListReqVO findChildCommentPageListReqVO) {
+    return commentService.findChildCommentPageList(findChildCommentPageListReqVO);
   }
 }

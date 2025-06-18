@@ -97,6 +97,33 @@
         limit 500
     </select>
 
+    <select id="selectChildCommentTotalById" resultType="long">
+        select child_comment_total
+        from t_comment
+        where id = #{commentId}
+          and level = 1
+    </select>
+
+    <select id="selectChildPageList" resultType="com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentDO"
+            parameterType="map" resultMap="BaseResultMap">
+        select id,
+               user_id,
+               note_id,
+               content_uuid,
+               is_content_empty,
+               image_url,
+               like_total,
+               create_time,
+               reply_user_id,
+               parent_id,
+               reply_comment_id
+        from t_comment
+        where parent_id = #{parentId}
+          and level = 2
+        order by id asc
+        limit #{offset}, #{pageSize}
+    </select>
+
     <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
         delete
         from t_comment

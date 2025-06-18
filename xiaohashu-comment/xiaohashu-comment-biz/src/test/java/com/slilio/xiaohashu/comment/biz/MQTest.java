@@ -15,7 +15,7 @@ import org.springframework.messaging.support.MessageBuilder;
  */
 @SpringBootTest
 @Slf4j
-class MQTests {
+class MQTest {
 
   @Resource private RocketMQTemplate rocketMQTemplate;
 
