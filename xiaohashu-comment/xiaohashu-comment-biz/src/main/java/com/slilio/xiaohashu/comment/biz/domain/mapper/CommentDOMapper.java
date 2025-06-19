@@ -100,6 +100,14 @@ public interface CommentDOMapper {
   Long selectChildCommentTotalById(Long commentId);
 
   /**
+   * 批量查询计数数据
+   *
+   * @param commentIds
+   * @return
+   */
+  List<CommentDO> selectCommentCountByIds(@Param("commentIds") List<Long> commentIds);
+
+  /**
    * 查询二级评论分页数据
    *
    * @param parentId

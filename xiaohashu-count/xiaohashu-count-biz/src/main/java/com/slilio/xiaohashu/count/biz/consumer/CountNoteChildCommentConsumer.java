@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.github.phantomthief.collection.BufferTrigger;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.count.biz.constant.MQConstants;
+import com.slilio.xiaohashu.count.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.count.biz.domain.mapper.CommentDOMapper;
 import com.slilio.xiaohashu.count.biz.enums.CommentLevelEnum;
 import com.slilio.xiaohashu.count.biz.model.dto.CountPublishCommentMqDTO;
@@ -21,6 +22,7 @@ import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.assertj.core.util.Lists;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +48,7 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
           .linger(Duration.ofSeconds(1)) // 多久聚合一次
           .setConsumerEx(this::consumeMessage) // 消费函数
           .build();
+  private RedisTemplate<Object, Object> redisTemplate;
 
   public CountNoteChildCommentConsumer(CommentDOMapper commentDOMapper) {}
 
@@ -93,6 +96,21 @@ public class CountNoteChildCommentConsumer implements RocketMQListener<String> {
       Long parentId = entry.getKey();
       // 评论数
       int count = CollUtil.size(entry.getValue());
+
+      // 更新Redis缓存中的评论计数数据
+      // 构建Key
+      String commentCountHashKey = RedisKeyConstants.buildCountCommentKey(parentId);
+      // 判断Hash存在，则更新子评论总数
+      boolean hasKey = redisTemplate.hasKey(commentCountHashKey);
+      if (hasKey) {
+        // 累加
+        redisTemplate
+            .opsForHash()
+            .increment(commentCountHashKey, RedisKeyConstants.FIELD_CHILD_COMMENT_TOTAL, count);
+      }
+
+      // 更新一级评论下的评论总数，进行累加操作
+      commentDOMapper.updateChildCommentTotal(parentId, count);
 
       // 更新一级评论下的评论总数，进行累加操作
       commentDOMapper.updateChildCommentTotal(parentId, count);
