@@ -119,4 +119,14 @@ public interface CommentDOMapper {
       @Param("parentId") Long parentId,
       @Param("offset") long offset,
       @Param("pageSize") long pageSize);
+
+  /**
+   * 查询子评论
+   *
+   * @param parentId
+   * @param limit
+   * @return
+   */
+  List<CommentDO> selectChildCommentsByParentIdAndLimit(
+      @Param("parentId") Long parentId, @Param("limit") int limit);
 }

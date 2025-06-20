@@ -16,6 +16,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
   // ----------- 业务异常状态码 -----------
   COMMENT_NOT_FOUND("COMMENT-20001", "此评论不存在"),
+  PARENT_COMMENT_NOT_FOUNT("COMMENT-20000", "此父评论不存在"),
   ;
 
   private final String errorCode;
