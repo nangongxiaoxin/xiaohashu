@@ -32,6 +32,19 @@ public class RedisKeyConstants {
   /** Key 前缀：二级评论分页ZSET */
   private static final String CHILD_COMMENT_LIST_KEY_PREFIX = "comment:childList:";
 
+  /** key：前缀：布隆过滤器-用户点赞的评论 */
+  private static final String BLOOM_COMMENT_LIKES_KEY_PREFIX = "bloom:comment:likes:";
+
+  /**
+   * 构建布隆过滤器-用户点赞的评论完整KEY
+   *
+   * @param userId
+   * @return
+   */
+  public static String buildBloomCommentLikesKey(Long userId) {
+    return BLOOM_COMMENT_LIKES_KEY_PREFIX + userId;
+  }
+
   /**
    * 构建子评论分页ZSET完整KEY
    *

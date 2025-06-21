@@ -21,7 +21,10 @@ import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentDO;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.NoteCountDOMapper;
 import com.slilio.xiaohashu.comment.biz.enums.CommentLevelEnum;
+import com.slilio.xiaohashu.comment.biz.enums.CommentLikeLuaResultEnum;
+import com.slilio.xiaohashu.comment.biz.enums.LikeUnlikeCommentTypeEnum;
 import com.slilio.xiaohashu.comment.biz.enums.ResponseCodeEnum;
+import com.slilio.xiaohashu.comment.biz.model.dto.LikeUnlikeCommentMqDTO;
 import com.slilio.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.slilio.xiaohashu.comment.biz.model.vo.*;
 import com.slilio.xiaohashu.comment.biz.retry.SendMqRetryHelper;
@@ -40,9 +43,16 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.apache.rocketmq.client.producer.SendCallback;
+import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.*;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
 
 /**
@@ -540,6 +550,118 @@ public class CommentServiceImpl implements CommentService {
       childCommentRspVOS.add(childCommentRspVO);
     }
     return PageResponse.success(childCommentRspVOS, pageNo, count, pageSize);
+  }
+
+  /**
+   * 评论点赞
+   *
+   * @param likeCommentReqVO
+   * @return
+   */
+  @Override
+  public Response<?> likeComment(LikeCommentReqVO likeCommentReqVO) {
+    // 被点赞ID
+    Long commentId = likeCommentReqVO.getCommentId();
+
+    //  1. 校验被点赞的评论是否存在
+    checkCommentIsExist(commentId);
+
+    // 2. 判断目标评论，是否已经被点赞
+
+    // 当前登录用户
+    Long userId = LoginUserContextHolder.getUserId();
+    // 布隆过滤器Key
+    String bloomUserCommentLikeListKey = RedisKeyConstants.buildBloomCommentLikesKey(userId);
+    // lua脚本执行
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    script.setScriptSource(
+        new ResourceScriptSource(new ClassPathResource("/lua/bloom_comment_like_check.lua")));
+    script.setResultType(Long.class);
+    // 执行
+    Long result =
+        redisTemplate.execute(
+            script, Collections.singletonList(bloomUserCommentLikeListKey), commentId);
+
+    CommentLikeLuaResultEnum commentLikeLuaResultEnum = CommentLikeLuaResultEnum.valueOf(result);
+    if (Objects.isNull(commentLikeLuaResultEnum)) {
+      throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+    }
+
+    switch (commentLikeLuaResultEnum) {
+      // redis中布隆过滤器不存在
+      case NOT_EXIST -> {
+        // todo：
+      }
+      // 目标评论已经被点赞（可能误判，需要进一步确认）
+      case COMMENT_LIKED -> {
+        // todo:
+      }
+    }
+
+    // 3. 发送 MQ, 异步将评论点赞记录落库
+    // 构建消息体
+    LikeUnlikeCommentMqDTO likeUnlikeCommentMqDTO =
+        LikeUnlikeCommentMqDTO.builder()
+            .userId(userId)
+            .commentId(commentId)
+            .type(LikeUnlikeCommentTypeEnum.LIKE.getCode()) // 点赞评论
+            .createTime(LocalDateTime.now())
+            .build();
+
+    // 构建消息体
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeCommentMqDTO)).build();
+    // 主题及tag
+    String destination = MQConstants.TOPIC_COMMENT_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_LIKE;
+    // MQ分区键
+    String hashKey = String.valueOf(userId);
+
+    // 异发送
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【评论点赞】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==> 【评论点赞】MQ 发送异常：", throwable);
+          }
+        });
+
+    return Response.success();
+  }
+
+  /**
+   * 校验被点赞的评论是否存在
+   *
+   * @param commentId
+   */
+  private void checkCommentIsExist(Long commentId) {
+    // 先从本地缓存中查询
+    String localCacheJson = LOCAL_CACHE.getIfPresent(commentId);
+
+    // 若本地缓存中不存在，该评论不存在
+    if (StringUtils.isBlank(localCacheJson)) {
+      // 再从redis中查询
+      String commentDetailRedisKey = RedisKeyConstants.buildCommentDetailKey(commentId);
+
+      boolean hasKey = redisTemplate.hasKey(commentDetailRedisKey);
+
+      // 若redis中也不存在
+      if (!hasKey) {
+        // 从数据库校验
+        CommentDO commentDO = commentDOMapper.selectByPrimaryKey(commentId);
+
+        if (Objects.isNull(commentDO)) {
+          throw new BizException(ResponseCodeEnum.COMMENT_NOT_FOUND);
+        }
+      }
+    }
   }
 
   /**

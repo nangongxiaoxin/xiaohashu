@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import com.github.phantomthief.collection.BufferTrigger;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.count.biz.constant.MQConstants;
+import com.slilio.xiaohashu.count.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.count.biz.domain.mapper.NoteCountDOMapper;
 import com.slilio.xiaohashu.count.biz.model.dto.CountPublishCommentMqDTO;
 import jakarta.annotation.Resource;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.assertj.core.util.Lists;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -37,6 +39,7 @@ public class CountNoteCommentConsumer implements RocketMQListener<String> {
           .linger(Duration.ofSeconds(1)) // 1s聚合一次
           .setConsumerEx(this::consumeMessage) // 设置消费者方法
           .build();
+  @Resource private RedisTemplate<Object, Object> redisTemplate;
 
   @Override
   public void onMessage(String body) {
@@ -73,6 +76,20 @@ public class CountNoteCommentConsumer implements RocketMQListener<String> {
       Long noteId = entry.getKey();
       // 评论数
       int count = CollUtil.size(entry.getValue());
+
+      // 更新Redis缓存中的笔记评论总数
+      // 构建KEY
+      String noteCountHashKey = RedisKeyConstants.buildCountNoteKey(noteId);
+      // 判断Hash是否存在
+      boolean hasKey = redisTemplate.hasKey(noteCountHashKey);
+
+      // 若Hash存在
+      if (hasKey) {
+        // 累计更新
+        redisTemplate
+            .opsForHash()
+            .increment(noteCountHashKey, RedisKeyConstants.FIELD_COMMENT_TOTAL, count);
+      }
 
       // 若评论数大于0，则执行更新操作：累计评论总数
       if (count > 0) {
