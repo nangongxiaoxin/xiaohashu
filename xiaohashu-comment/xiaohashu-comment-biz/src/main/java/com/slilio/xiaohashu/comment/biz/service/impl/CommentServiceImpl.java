@@ -18,7 +18,9 @@ import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.xiaohashu.comment.biz.constant.MQConstants;
 import com.slilio.xiaohashu.comment.biz.constant.RedisKeyConstants;
 import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentDO;
+import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentLikeDO;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
+import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentLikeDOMapper;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.NoteCountDOMapper;
 import com.slilio.xiaohashu.comment.biz.enums.CommentLevelEnum;
 import com.slilio.xiaohashu.comment.biz.enums.CommentLikeLuaResultEnum;
@@ -66,6 +68,7 @@ public class CommentServiceImpl implements CommentService {
   @Resource private SendMqRetryHelper sendMqRetryHelper;
   @Resource private CommentDOMapper commentDOMapper;
   @Resource private NoteCountDOMapper noteCountDOMapper;
+  @Resource private CommentLikeDOMapper commentLikeDOMapper;
   @Resource private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
   @Resource private KeyValueRpcService keyValueRpcService;
   @Resource private UserRpcService userRpcService;
@@ -590,11 +593,43 @@ public class CommentServiceImpl implements CommentService {
     switch (commentLikeLuaResultEnum) {
       // redis中布隆过滤器不存在
       case NOT_EXIST -> {
-        // todo：
+        // 从数据库中校验评论是否被点赞，并异步初始化布隆过滤器，设置过期时间
+        int count = commentLikeDOMapper.selectCountByUserIdAndCommentId(userId, commentId);
+        // 过期时间
+        long expireSeconds = 60 * 60 + RandomUtil.randomInt(60 * 60);
+        // 如果已经被点赞
+        if (count > 0) {
+          // 异步初始化布隆过滤器
+          threadPoolTaskExecutor.submit(
+              () ->
+                  batchAddCommentLike2BloomAndExpire(
+                      userId, expireSeconds, bloomUserCommentLikeListKey));
+
+          throw new BizException(ResponseCodeEnum.COMMENT_ALREADY_LIKED);
+        }
+
+        // 若目标评论未被点赞，查询当前用户是否有点赞其他评论，有则同步初始化布隆过滤器
+        batchAddCommentLike2BloomAndExpire(userId, expireSeconds, bloomUserCommentLikeListKey);
+
+        // 添加点赞当前评论ID到布隆过滤器 redis lua
+        script.setScriptSource(
+            new ResourceScriptSource(
+                new ClassPathResource("/lua/bloom_add_comment_like_and_expire.lua")));
+        script.setResultType(Long.class);
+        redisTemplate.execute(
+            script,
+            Collections.singletonList(bloomUserCommentLikeListKey),
+            commentId,
+            expireSeconds);
       }
       // 目标评论已经被点赞（可能误判，需要进一步确认）
       case COMMENT_LIKED -> {
-        // todo:
+        // 查询数据库校验是否点赞
+        int count = commentLikeDOMapper.selectCountByUserIdAndCommentId(userId, commentId);
+
+        if (count > 0) {
+          throw new BizException(ResponseCodeEnum.COMMENT_ALREADY_LIKED);
+        }
       }
     }
 
@@ -634,6 +669,41 @@ public class CommentServiceImpl implements CommentService {
         });
 
     return Response.success();
+  }
+
+  /**
+   * 初始化评论点赞布隆过滤器
+   *
+   * @param userId
+   * @param expireSeconds
+   * @param bloomUserCommentLikeListKey
+   * @return
+   */
+  private void batchAddCommentLike2BloomAndExpire(
+      Long userId, long expireSeconds, String bloomUserCommentLikeListKey) {
+    try {
+      // 查询该用户点赞的所有评论
+      List<CommentLikeDO> commentLikeDOS = commentLikeDOMapper.selectByUserId(userId);
+
+      // 若不为空，批量添加到布隆过滤器
+      if (CollUtil.isNotEmpty(commentLikeDOS)) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(
+            new ResourceScriptSource(
+                new ClassPathResource("/lua/bloom_batch_add_comment_like_and_expire.lua")));
+        script.setResultType(Long.class);
+
+        // 构建Lua参数
+        List<Object> luaArgs = Lists.newArrayList();
+        commentLikeDOS.forEach(
+            commentLikeDO -> luaArgs.add(commentLikeDO.getCommentId())); // 将每个点赞Id传入
+        luaArgs.add(expireSeconds);
+        redisTemplate.execute(
+            script, Collections.singletonList(bloomUserCommentLikeListKey), luaArgs.toArray());
+      }
+    } catch (Exception e) {
+      log.error("## 异步初始化【评论点赞】布隆过滤器异常: ", e);
+    }
   }
 
   /**
