@@ -22,10 +22,7 @@ import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentLikeDO;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentDOMapper;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.CommentLikeDOMapper;
 import com.slilio.xiaohashu.comment.biz.domain.mapper.NoteCountDOMapper;
-import com.slilio.xiaohashu.comment.biz.enums.CommentLevelEnum;
-import com.slilio.xiaohashu.comment.biz.enums.CommentLikeLuaResultEnum;
-import com.slilio.xiaohashu.comment.biz.enums.LikeUnlikeCommentTypeEnum;
-import com.slilio.xiaohashu.comment.biz.enums.ResponseCodeEnum;
+import com.slilio.xiaohashu.comment.biz.enums.*;
 import com.slilio.xiaohashu.comment.biz.model.dto.LikeUnlikeCommentMqDTO;
 import com.slilio.xiaohashu.comment.biz.model.dto.PublishCommentMqDTO;
 import com.slilio.xiaohashu.comment.biz.model.vo.*;
@@ -665,6 +662,108 @@ public class CommentServiceImpl implements CommentService {
           @Override
           public void onException(Throwable throwable) {
             log.info("==> 【评论点赞】MQ 发送异常：", throwable);
+          }
+        });
+
+    return Response.success();
+  }
+
+  /**
+   * 取消评论点赞
+   *
+   * @param unLikeCommentReqVO
+   * @return
+   */
+  @Override
+  public Response<?> unlikeComment(UnLikeCommentReqVO unLikeCommentReqVO) {
+    // 被取消点赞的评论
+    Long commentId = unLikeCommentReqVO.getCommentId();
+
+    // 1.校验评论是否存在
+    checkCommentIsExist(commentId);
+
+    // 2. 校验评论是否被点赞过
+    Long userId = LoginUserContextHolder.getUserId();
+    // 布隆过滤器key
+    String bloomUserCommentLikeListKey = RedisKeyConstants.buildBloomCommentLikesKey(userId);
+
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    script.setScriptSource(
+        new ResourceScriptSource(new ClassPathResource("/lua/bloom_comment_unlike_check.lua")));
+    script.setResultType(Long.class);
+
+    // 执行Lua脚本
+    Long result =
+        redisTemplate.execute(
+            script, Collections.singletonList(bloomUserCommentLikeListKey), commentId);
+
+    CommentUnlikeLuaResultEnum commentUnlikeLuaResultEnum =
+        CommentUnlikeLuaResultEnum.valueOf(result);
+
+    if (Objects.isNull(commentUnlikeLuaResultEnum)) {
+      throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+    }
+
+    switch (commentUnlikeLuaResultEnum) {
+      // 布隆过滤器不存在
+      case NOT_EXIST -> {
+        // 异步初始化布隆过滤器
+        threadPoolTaskExecutor.submit(
+            () -> {
+              // 保底1小时+随机秒数
+              long expireSeconds = 60 * 60 + RandomUtil.randomInt(60 * 60);
+              batchAddCommentLike2BloomAndExpire(
+                  userId, expireSeconds, bloomUserCommentLikeListKey);
+            });
+        // 从数据库中校验评论是否被点赞
+        int count = commentLikeDOMapper.selectCountByUserIdAndCommentId(userId, commentId);
+
+        // 未点赞，无法取消点赞操作，抛出业务异常
+        if (count == 0) {
+          throw new BizException(ResponseCodeEnum.COMMENT_NOT_LIKED);
+        }
+      }
+      // 校验目标未被点赞（判断绝对正确）
+      case COMMENT_NOT_LIKED -> {
+        throw new BizException(ResponseCodeEnum.COMMENT_NOT_LIKED);
+      }
+    }
+
+    // 3. 发送顺序 MQ，删除评论点赞记录
+
+    // 构建消息体
+    LikeUnlikeCommentMqDTO likeUnlikeCommentMqDTO =
+        LikeUnlikeCommentMqDTO.builder()
+            .userId(userId)
+            .commentId(commentId)
+            .type(LikeUnlikeCommentTypeEnum.UNLIKE.getCode())
+            .createTime(LocalDateTime.now())
+            .build();
+
+    // 构建消息对象，并将DTO转换成Json字符串设置到消息体中
+    Message<String> message =
+        MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeCommentMqDTO)).build();
+
+    // 通过冒号连接，并将DTO转换成Json字符串设置到消息体中
+    String destination = MQConstants.TOPIC_COMMENT_LIKE_OR_UNLIKE + ":" + MQConstants.TAG_UNLIKE;
+
+    // MQ分区键
+    String hashKey = String.valueOf(userId);
+
+    // 异步发送MQ顺序消息，提升接口响应速度
+    rocketMQTemplate.asyncSendOrderly(
+        destination,
+        message,
+        hashKey,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【评论取消点赞】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==> 【评论取消点赞】MQ 发送异常：", throwable);
           }
         });
 

@@ -14,4 +14,6 @@ public interface MQConstants {
   String TOPIC_COMMENT_LIKE_OR_UNLIKE = "CommentLikeUnlikeTopic"; // 评论点赞、取消点赞共用一个topic
 
   String TAG_LIKE = "like"; // tag标签：点赞
+
+  String TAG_UNLIKE = "UnLike"; // Tag标签：取消点赞
 }

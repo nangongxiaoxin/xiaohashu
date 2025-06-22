@@ -1,6 +1,9 @@
 package com.slilio.xiaohashu.comment.biz;
 
+import com.slilio.framework.common.util.JsonUtils;
+import com.slilio.xiaohashu.comment.biz.model.dto.LikeUnlikeCommentMqDTO;
 import jakarta.annotation.Resource;
+import java.time.LocalDateTime;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
@@ -42,6 +45,44 @@ class MQTest {
               log.error("==> 【评论发布】MQ 发送异常: ", throwable);
             }
           });
+    }
+  }
+
+  @Test
+  void testBatchSendLikeUnlikeCommentMQ() {
+    Long userId = 1L;
+    Long commentId = 4001L;
+
+    for (long i = 0; i < 32; i++) {
+      // 消息体
+      LikeUnlikeCommentMqDTO likeUnlikeCommentMqDTO =
+          LikeUnlikeCommentMqDTO.builder()
+              .userId(userId)
+              .commentId(commentId)
+              .createTime(LocalDateTime.now())
+              .build();
+
+      // topic和tag
+      String destination = "CommentLikeUnlikeTopic:";
+
+      if (i % 2 == 0) {
+        // 偶数
+        likeUnlikeCommentMqDTO.setType(0); // 取消点赞
+        destination += "Unlike";
+      } else {
+        // 偶数
+        likeUnlikeCommentMqDTO.setType(1); // 点赞
+        destination += "Like";
+      }
+      // MQ分区键
+      String hashKey = String.valueOf(userId);
+
+      // 构建消息
+      Message<String> message =
+          MessageBuilder.withPayload(JsonUtils.toJsonString(likeUnlikeCommentMqDTO)).build();
+
+      // 同步消息发送
+      rocketMQTemplate.syncSendOrderly(destination, message, hashKey);
     }
   }
 }

@@ -1,6 +1,7 @@
 package com.slilio.xiaohashu.comment.biz.domain.mapper;
 
 import com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentLikeDO;
+import com.slilio.xiaohashu.comment.biz.model.dto.LikeUnlikeCommentMqDTO;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
@@ -34,4 +35,20 @@ public interface CommentLikeDOMapper {
    * @return
    */
   List<CommentLikeDO> selectByUserId(@Param("userId") Long userId);
+
+  /**
+   * 批量删除点赞记录
+   *
+   * @param unlikes
+   * @return
+   */
+  int batchDelete(@Param("unlikes") List<LikeUnlikeCommentMqDTO> unlikes);
+
+  /**
+   * 批量添加点赞记录
+   *
+   * @param likes
+   * @return
+   */
+  int batchInsert(@Param("likes") List<LikeUnlikeCommentMqDTO> likes);
 }
