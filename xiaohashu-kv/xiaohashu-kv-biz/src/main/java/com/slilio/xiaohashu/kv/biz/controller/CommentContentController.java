@@ -5,6 +5,7 @@ import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.kv.biz.service.CommentContentService;
 import com.slilio.xiaohashu.kv.dto.req.BatchAddCommentContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.BatchFindCommentContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteCommentContentReqDTO;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
@@ -35,5 +36,12 @@ public class CommentContentController {
   public Response<?> batchFindCommentContent(
       @Validated @RequestBody BatchFindCommentContentReqDTO batchFindCommentContentReqDTO) {
     return commentContentService.batchFindCommentContent(batchFindCommentContentReqDTO);
+  }
+
+  @PostMapping(value = "/comment/content/delete")
+  @ApiOperationLog(description = "删除评论内容")
+  public Response<?> deleteCommentContent(
+      @Validated @RequestBody DeleteCommentContentReqDTO deleteCommentContentReqDTO) {
+    return commentContentService.deleteCommentContent(deleteCommentContentReqDTO);
   }
 }

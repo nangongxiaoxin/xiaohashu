@@ -6,12 +6,10 @@ import com.slilio.framework.common.constant.DateConstants;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.comment.biz.model.bo.CommentBO;
 import com.slilio.xiaohashu.kv.api.KeyValueFeignApi;
-import com.slilio.xiaohashu.kv.dto.req.BatchAddCommentContentReqDTO;
-import com.slilio.xiaohashu.kv.dto.req.BatchFindCommentContentReqDTO;
-import com.slilio.xiaohashu.kv.dto.req.CommentContentReqDTO;
-import com.slilio.xiaohashu.kv.dto.req.FindCommentContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.*;
 import com.slilio.xiaohashu.kv.dto.rsp.FindCommentContentRspDTO;
 import jakarta.annotation.Resource;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Component;
@@ -60,6 +58,13 @@ public class KeyValueRpcService {
     return true;
   }
 
+  /**
+   * 批量查询批量内容
+   *
+   * @param noteId
+   * @param findCommentContentReqDTOS
+   * @return
+   */
   public List<FindCommentContentRspDTO> batchFindCommentContent(
       Long noteId, List<FindCommentContentReqDTO> findCommentContentReqDTOS) {
     BatchFindCommentContentReqDTO batchFindCommentContentReqDTO =
@@ -77,5 +82,31 @@ public class KeyValueRpcService {
       return null;
     }
     return response.getData();
+  }
+
+  /**
+   * 删除评论内容
+   *
+   * @param noteId
+   * @param createTime
+   * @param contentId
+   * @return
+   */
+  public boolean deleteCommentContent(Long noteId, LocalDateTime createTime, String contentId) {
+    DeleteCommentContentReqDTO deleteCommentContentReqDTO =
+        DeleteCommentContentReqDTO.builder()
+            .noteId(noteId)
+            .yearMonth(DateConstants.DATE_FORMAT_Y_M.format(createTime))
+            .contentId(contentId)
+            .build();
+
+    // 调用KV存储服务
+    Response<?> response = keyValueFeignApi.deleteCommentContent(deleteCommentContentReqDTO);
+
+    if (!response.isSuccess()) {
+      throw new RuntimeException("删除评论内容失败");
+    }
+
+    return true;
   }
 }

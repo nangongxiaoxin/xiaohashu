@@ -3,6 +3,7 @@ package com.slilio.xiaohashu.kv.biz.service;
 import com.slilio.framework.common.response.Response;
 import com.slilio.xiaohashu.kv.dto.req.BatchAddCommentContentReqDTO;
 import com.slilio.xiaohashu.kv.dto.req.BatchFindCommentContentReqDTO;
+import com.slilio.xiaohashu.kv.dto.req.DeleteCommentContentReqDTO;
 
 /**
  * @Author: slilio @CreateTime: 2025-06-06 @Description: @Version: 1.0
@@ -23,4 +24,12 @@ public interface CommentContentService {
    * @return
    */
   Response<?> batchFindCommentContent(BatchFindCommentContentReqDTO batchFindCommentContentReqDTO);
+
+  /**
+   * 删除评论正文
+   *
+   * @param deleteCommentContentReqDTO
+   * @return
+   */
+  Response<?> deleteCommentContent(DeleteCommentContentReqDTO deleteCommentContentReqDTO);
 }

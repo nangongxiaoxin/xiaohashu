@@ -50,4 +50,19 @@ public interface CommentService {
    * @return
    */
   Response<?> unlikeComment(UnLikeCommentReqVO unLikeCommentReqVO);
+
+  /**
+   * 删除评论
+   *
+   * @param deleteCommentReqVO
+   * @return
+   */
+  Response<?> deleteComment(DeleteCommentReqVO deleteCommentReqVO);
+
+  /**
+   * 删除本地评论缓存
+   *
+   * @param commentId
+   */
+  void deleteCommentLocalCache(Long commentId);
 }

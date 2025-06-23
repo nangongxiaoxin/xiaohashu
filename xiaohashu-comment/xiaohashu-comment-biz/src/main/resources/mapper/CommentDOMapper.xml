@@ -150,6 +150,28 @@
         from t_comment
         where id = #{id,jdbcType=BIGINT}
     </delete>
+
+    <delete id="deleteByParentId" parameterType="long">
+        delete
+        from t_comment
+        where parent_id = #{commentId}
+    </delete>
+
+    <delete id="deleteByIds" parameterType="map">
+        delete from t_comment
+        where id in
+        <foreach collection="commentIds" item="commentId" open="(" separator="," close=")">
+            #{commentId}
+        </foreach>
+    </delete>
+
+    <select id="selectByReplyCommentId" resultMap="BaseResultMap" parameterType="long">
+        select
+        <include refid="Base_Column_List"/>
+        from t_comment
+        where reply_comment_id = #{commentId}
+    </select>
+
     <insert id="insert" parameterType="com.slilio.xiaohashu.comment.biz.domain.dataobject.CommentDO">
         insert into t_comment (id, note_id, user_id,
                                content_uuid, is_content_empty, image_url,
@@ -362,4 +384,6 @@
         set first_reply_comment_id = #{firstReplyCommentId}
         where id = #{id}
     </update>
+
+
 </mapper>

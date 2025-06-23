@@ -129,4 +129,28 @@ public interface CommentDOMapper {
    */
   List<CommentDO> selectChildCommentsByParentIdAndLimit(
       @Param("parentId") Long parentId, @Param("limit") int limit);
+
+  /**
+   * 删除一级评论下，所有的二级评论
+   *
+   * @param commentId
+   * @return
+   */
+  int deleteByParentId(Long commentId);
+
+  /**
+   * 批量删除评论
+   *
+   * @param commentIds
+   * @return
+   */
+  int deleteByIds(@Param("commentIds") List<Long> commentIds);
+
+  /**
+   * 根据reply_comment_id
+   *
+   * @param commentId
+   * @return
+   */
+  CommentDO selectByReplyCommentId(Long commentId);
 }

@@ -45,6 +45,7 @@ import org.apache.logging.log4j.util.Strings;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.*;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -53,6 +54,7 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scripting.support.ResourceScriptSource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * @Author: slilio @CreateTime: 2025-06-05 @Description: @Version: 1.0
@@ -81,6 +83,8 @@ public class CommentServiceImpl implements CommentService {
           .maximumSize(10000) // 设置缓存的最大容量为10000个条目
           .expireAfterWrite(1, TimeUnit.HOURS) // 设置缓存条目在写入后1小时过期
           .build();
+
+  @Autowired private TransactionTemplate transactionTemplate;
 
   /**
    * 发布评论
@@ -768,6 +772,123 @@ public class CommentServiceImpl implements CommentService {
         });
 
     return Response.success();
+  }
+
+  /**
+   * 删除评论
+   *
+   * @param deleteCommentReqVO
+   * @return
+   */
+  @Override
+  public Response<?> deleteComment(DeleteCommentReqVO deleteCommentReqVO) {
+    Long commentId = deleteCommentReqVO.getCommentId();
+
+    // 1. 校验评论是否存在
+    CommentDO commentDO = commentDOMapper.selectByPrimaryKey(commentId);
+    if (Objects.isNull(commentDO)) {
+      throw new BizException(ResponseCodeEnum.COMMENT_NOT_FOUND);
+    }
+
+    // 2. 校验是否有权限删除
+    Long currUserId = LoginUserContextHolder.getUserId();
+    if (!Objects.equals(currUserId, commentDO.getUserId())) {
+      throw new BizException(ResponseCodeEnum.COMMENT_CANT_OPERATE);
+    }
+
+    // 3. 物理删除评论、评论内容
+
+    // 编程式事务
+    transactionTemplate.execute(
+        status -> {
+          try {
+            // 删除评论元数据
+            commentDOMapper.deleteByPrimaryKey(commentId);
+
+            // 删除评论内容
+            keyValueRpcService.deleteCommentContent(
+                commentDO.getNoteId(), commentDO.getCreateTime(), commentDO.getContentUuid());
+
+            return null;
+          } catch (Exception ex) {
+            status.setRollbackOnly(); // 标记为事务回滚
+            log.error("", ex);
+            throw ex;
+          }
+        });
+
+    // 4. 删除 Redis 缓存（ZSet 和 String）
+    Integer level = commentDO.getLevel();
+    Long noteId = commentDO.getNoteId();
+    Long parentCommentId = commentDO.getParentId();
+
+    // 根据评论级别，构建对应的ZSet key
+    String redisZSetKey =
+        Objects.equals(level, 1)
+            ? RedisKeyConstants.buildCommentListKey(noteId)
+            : RedisKeyConstants.buildChildCommentListKey(parentCommentId);
+
+    // 使用RedisTe 执行管道操作
+    redisTemplate.executePipelined(
+        new SessionCallback<>() {
+          @Override
+          public Object execute(RedisOperations operations) {
+            // 删除ZSet中对应评论ID
+            operations.opsForZSet().remove(redisZSetKey, commentId);
+            // 删除评论详情
+            operations.delete(RedisKeyConstants.buildCommentDetailKey(commentId));
+
+            return null;
+          }
+        });
+
+    // 5. 发布广播 MQ, 将本地缓存删除
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_DELETE_COMMENT_LOCAL_CACHE,
+        commentId,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【删除评论详情本地缓存】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==> 【删除评论详情本地缓存】MQ 发送异常：", throwable);
+          }
+        });
+
+    // 6. 发送 MQ, 异步去更新计数、删除关联评论、热度值等
+
+    // 构建消息对象，并将DO转成Json字符串设置到消息体中
+    Message<String> message = MessageBuilder.withPayload(JsonUtils.toJsonString(commentDO)).build();
+    // 异步发送MQ消息，提升接口响应速度
+    rocketMQTemplate.asyncSend(
+        MQConstants.TOPIC_DELETE_COMMENT,
+        message,
+        new SendCallback() {
+          @Override
+          public void onSuccess(SendResult sendResult) {
+            log.info("==> 【删除评论】MQ 发送成功，SendResult: {}", sendResult);
+          }
+
+          @Override
+          public void onException(Throwable throwable) {
+            log.info("==> 【删除评论】MQ 发送异常", throwable);
+          }
+        });
+
+    return Response.success();
+  }
+
+  /**
+   * 删除本地评论缓存
+   *
+   * @param commentId
+   */
+  @Override
+  public void deleteCommentLocalCache(Long commentId) {
+    LOCAL_CACHE.invalidate(commentId);
   }
 
   /**
