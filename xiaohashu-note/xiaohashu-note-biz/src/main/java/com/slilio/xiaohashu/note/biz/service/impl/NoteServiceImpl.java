@@ -714,18 +714,19 @@ public class NoteServiceImpl implements NoteService {
     // 当前登录用户
     Long userId = LoginUserContextHolder.getUserId();
 
-    // 布隆过滤器Key
-    String bloomUserNoteLikeListKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(userId);
+    // Roaring Bitmap Key
+    String rbitmapUserNoteLikeListKey = RedisKeyConstants.buildRBitmapUserNoteLikeListKey(userId);
 
     DefaultRedisScript<Long> script = new DefaultRedisScript<>();
     // Lua脚本路径
     script.setScriptSource(
-        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_like_check.lua")));
+        new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_note_like_check.lua")));
     // 返回值类型
     script.setResultType(Long.class);
     // 执行Lua脚本
     Long result =
-        redisTemplate.execute(script, Collections.singletonList(bloomUserNoteLikeListKey), userId);
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteLikeListKey), noteId);
 
     NoteLikeLuaResultEnum noteLikeLuaResultEnum = NoteLikeLuaResultEnum.valueOf(result);
 
@@ -740,45 +741,48 @@ public class NoteServiceImpl implements NoteService {
         // 过期时间 1天+
         long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
 
-        // 目标笔记已经被点赞
+        // 目标笔记已经被点赞（替换为RBitmap进行缓存，降低内存开销和误判风险）
         if (count > 0) {
           // 异步初始化布隆过滤器
           threadPoolTaskExecutor.submit(
               () ->
-                  batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey));
+                  batchAddNoteLike2RBitmapAndExpire(
+                      userId, expireSeconds, rbitmapUserNoteLikeListKey));
           throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
         }
 
-        // 若目标笔记未被点赞，查询当前用户是否有其他笔记，有则同步初始化布隆过滤器
-        batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
+        // 若目标笔记未被点赞，查询当前用户是否有点赞其他笔记，有则同步初始化 Roaring Bitmap
+        batchAddNoteLike2RBitmapAndExpire(userId, expireSeconds, rbitmapUserNoteLikeListKey);
 
-        // 若数据库中也没有点赞记录，说明该用户还未点赞过任何笔记
-        // lua脚本路径
+        // 添加当前点赞笔记 ID 到 Roaring Bitmap 中
+        // Lua 脚本路径
         script.setScriptSource(
             new ResourceScriptSource(
-                new ClassPathResource("/lua/bloom_add_note_like_and_expire.lua")));
+                new ClassPathResource("/lua/rbitmap_add_note_like_and_expire.lua")));
         // 返回值类型
         script.setResultType(Long.class);
         redisTemplate.execute(
-            script, Collections.singletonList(bloomUserNoteLikeListKey), noteId, expireSeconds);
+            script, Collections.singletonList(rbitmapUserNoteLikeListKey), noteId, expireSeconds);
       }
-      // 目标笔记已经被点赞（可能误判，需要再次判断）
+      // 目标笔记已经被点赞（替换bloom为roaring bitmap无误判风险）
       case NOTE_LIKED -> {
-        // 校验ZSet列表中是否包含被点赞的笔记ID
-        Double score = redisTemplate.opsForZSet().score(userNoteLikeZSetKey, noteId);
+        //        // 校验ZSet列表中是否包含被点赞的笔记ID
+        //        Double score = redisTemplate.opsForZSet().score(userNoteLikeZSetKey, noteId);
+        //
+        //        if (Objects.nonNull(score)) {
+        //          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+        //        }
+        //
+        //        // 若Score为空，则表示ZSet点赞列表中不存在，查询数据库校验
+        //        int count = noteLikeDOMapper.selectNoteIsLiked(userId, noteId);
+        //        if (count > 0) {
+        //          // 数据库里面有点赞，而redis中Zset不存在，则需要重新异步初始化Zset
+        //          asyncInitUserNoteLikesZSet(userId, userNoteLikeZSetKey);
+        //
+        //          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
+        //        }
 
-        if (Objects.nonNull(score)) {
-          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
-        }
-
-        // 若Score为空，则表示ZSet点赞列表中不存在，查询数据库校验
-        int count = noteLikeDOMapper.selectNoteIsLiked(userId, noteId);
-        if (count > 0) {
-          // 数据库里面有点赞，而redis中Zset不存在，则需要重新异步初始化Zset
-          asyncInitUserNoteLikesZSet(userId, userNoteLikeZSetKey);
-
-          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
-        }
+        throw new BizException(ResponseCodeEnum.NOTE_ALREADY_LIKED);
       }
     }
 
@@ -864,6 +868,41 @@ public class NoteServiceImpl implements NoteService {
   }
 
   /**
+   * 初始化笔记点赞Roaring Bitmap
+   *
+   * @param userId
+   * @param expireSeconds
+   * @param rbitmapUserNoteLikeListKey
+   * @return
+   */
+  private void batchAddNoteLike2RBitmapAndExpire(
+      Long userId, long expireSeconds, String rbitmapUserNoteLikeListKey) {
+    try {
+      // 异步全量同步一下，并设置过期时间
+      List<NoteLikeDO> noteLikeDOS = noteLikeDOMapper.selectByUserId(userId);
+
+      if (CollUtil.isNotEmpty(noteLikeDOS)) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        // Lua 脚本路径
+        script.setScriptSource(
+            new ResourceScriptSource(
+                new ClassPathResource("/lua/rbitmap_batch_add_note_like_and_expire.lua")));
+        // 返回值类型
+        script.setResultType(Long.class);
+
+        // 构建 Lua 参数
+        List<Object> luaArgs = Lists.newArrayList();
+        noteLikeDOS.forEach(noteLikeDO -> luaArgs.add(noteLikeDO.getNoteId())); // 将每个点赞的笔记 ID 传入
+        luaArgs.add(expireSeconds); // 最后一个参数是过期时间（秒）
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteLikeListKey), luaArgs.toArray());
+      }
+    } catch (Exception e) {
+      log.error("## 异步初始化【笔记点赞】Roaring Bitmap 异常: ", e);
+    }
+  }
+
+  /**
    * 取消点赞笔记
    *
    * @param unLikeNoteReqVO
@@ -881,18 +920,22 @@ public class NoteServiceImpl implements NoteService {
     // 当前登录用户ID
     Long userId = LoginUserContextHolder.getUserId();
 
-    // 布隆过滤器Key
-    String bloomUserNoteLikeListKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(userId);
+    // Roaring bitmap（替换掉布隆过滤器）
+    //    String bloomUserNoteLikeListKey = RedisKeyConstants.buildBloomUserNoteLikeListKey(userId);
+    String rbitmapUserNoteLikeListKey = RedisKeyConstants.buildRBitmapUserNoteLikeListKey(userId);
 
     DefaultRedisScript<Long> script = new DefaultRedisScript<>();
     // 脚本路径
+    // script.setScriptSource(
+    //    new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_unlike_check.lua")));
     script.setScriptSource(
-        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_unlike_check.lua")));
+        new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_note_unlike_check.lua")));
     // 返回值类型
     script.setResultType(Long.class);
     // 执行脚本
     Long result =
-        redisTemplate.execute(script, Collections.singletonList(bloomUserNoteLikeListKey), noteId);
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteLikeListKey), noteId);
 
     NoteUnlikeLuaResultEnum noteUnlikeLuaResultEnum = NoteUnlikeLuaResultEnum.valueOf(result);
 
@@ -904,7 +947,9 @@ public class NoteServiceImpl implements NoteService {
             () -> {
               // 过期时间 1天+
               long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
-              batchAddNoteLike2BloomAndExpire(userId, expireSeconds, bloomUserNoteLikeListKey);
+              //              batchAddNoteLike2BloomAndExpire(userId, expireSeconds,
+              // bloomUserNoteLikeListKey);
+              batchAddNoteLike2RBitmapAndExpire(userId, expireSeconds, rbitmapUserNoteLikeListKey);
             });
 
         // 从数据库校验笔记是否被点赞
@@ -915,7 +960,7 @@ public class NoteServiceImpl implements NoteService {
           throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
         }
       }
-      // 布隆过滤器校验目标笔记未被点赞（判断绝对准确）
+      // Roaring Bitmap 校验目标笔记未被点赞
       case NOTE_NOT_LIKED -> {
         throw new BizException(ResponseCodeEnum.NOTE_NOT_LIKED);
       }
@@ -980,18 +1025,21 @@ public class NoteServiceImpl implements NoteService {
     Long userId = LoginUserContextHolder.getUserId();
 
     // 布隆过滤器Key
-    String bloomUserNoteCollectListKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+    //    String bloomUserNoteCollectListKey =
+    // RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+    String rbitmapUserNoteCollectListKey =
+        RedisKeyConstants.buildRBitmapUserNoteCollectListKey(userId);
 
     DefaultRedisScript<Long> script = new DefaultRedisScript<>();
     // lua脚本路径
     script.setScriptSource(
-        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_collect_check.lua")));
+        new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_note_collect_check.lua")));
     script.setResultType(Long.class);
 
     // 执行Lua脚本
     Long result =
         redisTemplate.execute(
-            script, Collections.singletonList(bloomUserNoteCollectListKey), noteId);
+            script, Collections.singletonList(rbitmapUserNoteCollectListKey), noteId);
 
     NoteCollectLuaResultEnum noteCollectLuaResultEnum = NoteCollectLuaResultEnum.valueOf(result);
 
@@ -1010,37 +1058,41 @@ public class NoteServiceImpl implements NoteService {
           // 异步初始化布隆过滤器
           threadPoolTaskExecutor.submit(
               () ->
-                  batchAddNoteCollect2BloomAndExpire(
-                      userId, expireSeconds, bloomUserNoteCollectListKey));
+                  batchAddNoteCollect2RBitmapAndExpire(
+                      userId, expireSeconds, rbitmapUserNoteCollectListKey));
           throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
         }
 
         //  若目标笔记未被收藏，查询当前用户是否有收藏其他笔记，有则同步初始化布隆过滤器
-        batchAddNoteCollect2BloomAndExpire(userId, expireSeconds, bloomUserNoteCollectListKey);
+        batchAddNoteCollect2RBitmapAndExpire(userId, expireSeconds, rbitmapUserNoteCollectListKey);
         //  添加当前提交的noteId收藏笔记ID到存储到布隆过滤器中
         script.setScriptSource(
             new ResourceScriptSource(
-                new ClassPathResource("/lua/bloom_add_note_collect_and_expire.lua")));
+                new ClassPathResource("/lua/rbitmap_add_note_collect_and_expire.lua")));
         script.setResultType(Long.class);
         redisTemplate.execute(
-            script, Collections.singletonList(bloomUserNoteCollectListKey), noteId, expireSeconds);
+            script,
+            Collections.singletonList(rbitmapUserNoteCollectListKey),
+            noteId,
+            expireSeconds);
       }
-      // 目标已经被收藏（可能误判，需要进一步判断）
+      // 目标已经被收藏（Roaring Bitmap不存在误判，不需要进一步判断）
       case NOTE_COLLECTED -> {
-        // 校验Zset列表中是否包含被收藏的笔记ID
-        Double score = redisTemplate.opsForZSet().score(userNoteCollectZSetKey, noteId);
-        if (Objects.nonNull(score)) {
-          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
-        }
-
-        // 若score为空，则表示ZSet收藏列表不存在，查询数据库校验
-        int count = noteCollectionDOMapper.selectNoteIsCollected(userId, noteId);
-        if (count > 0) {
-          // 数据库有记录，需要向redis中同步，而redis中zset未初始化，需要重新异步初始化ZSet
-          asyncInitUserNoteCollectsZSet(userId, userNoteCollectZSetKey);
-
-          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
-        }
+        //        // 校验Zset列表中是否包含被收藏的笔记ID
+        //        Double score = redisTemplate.opsForZSet().score(userNoteCollectZSetKey, noteId);
+        //        if (Objects.nonNull(score)) {
+        //          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
+        //        }
+        //
+        //        // 若score为空，则表示ZSet收藏列表不存在，查询数据库校验
+        //        int count = noteCollectionDOMapper.selectNoteIsCollected(userId, noteId);
+        //        if (count > 0) {
+        //          // 数据库有记录，需要向redis中同步，而redis中zset未初始化，需要重新异步初始化ZSet
+        //          asyncInitUserNoteCollectsZSet(userId, userNoteCollectZSetKey);
+        //
+        //          throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
+        //        }
+        throw new BizException(ResponseCodeEnum.NOTE_ALREADY_COLLECTED);
       }
     }
 
@@ -1153,17 +1205,20 @@ public class NoteServiceImpl implements NoteService {
     Long userId = LoginUserContextHolder.getUserId();
 
     // 布隆过滤器Key
-    String bloomUserNoteCollectListKey = RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+    //    String bloomUserNoteCollectListKey =
+    // RedisKeyConstants.buildBloomUserNoteCollectListKey(userId);
+    String rbitmapUserNoteCollectListKey =
+        RedisKeyConstants.buildRBitmapUserNoteCollectListKey(userId);
 
     DefaultRedisScript<Long> script = new DefaultRedisScript<>();
     script.setScriptSource(
-        new ResourceScriptSource(new ClassPathResource("/lua/bloom_note_uncollect_check.lua")));
+        new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_note_uncollect_check.lua")));
     script.setResultType(Long.class);
 
     // 执行Lua脚本
     Long result =
         redisTemplate.execute(
-            script, Collections.singletonList(bloomUserNoteCollectListKey), noteId);
+            script, Collections.singletonList(rbitmapUserNoteCollectListKey), noteId);
     NoteUnCollectLuaResultEnum noteUnCollectLuaResultEnum =
         NoteUnCollectLuaResultEnum.valueOf(result);
 
@@ -1175,8 +1230,8 @@ public class NoteServiceImpl implements NoteService {
             () -> {
               // 过期时间：保底1天+随机秒数
               long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
-              batchAddNoteCollect2BloomAndExpire(
-                  userId, expireSeconds, bloomUserNoteCollectListKey);
+              batchAddNoteCollect2RBitmapAndExpire(
+                  userId, expireSeconds, rbitmapUserNoteCollectListKey);
             });
 
         // 从数据库中校验笔记是否被收藏
@@ -1235,6 +1290,172 @@ public class NoteServiceImpl implements NoteService {
         });
 
     return Response.success();
+  }
+
+  /**
+   * 初始化笔记收藏Roaring Bitmap
+   *
+   * @param userId
+   * @param expireSeconds
+   * @param rbitmapUserNoteCollectListKey
+   */
+  private void batchAddNoteCollect2RBitmapAndExpire(
+      Long userId, long expireSeconds, String rbitmapUserNoteCollectListKey) {
+    try {
+      // 异步全量同步一下，并设置过期时间
+      List<NoteCollectionDO> noteCollectionDOS = noteCollectionDOMapper.selectByUserId(userId);
+
+      if (CollUtil.isNotEmpty(noteCollectionDOS)) {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setScriptSource(
+            new ResourceScriptSource(
+                new ClassPathResource("/lua/rbitmap_batch_add_note_collect_and_expire.lua")));
+        script.setResultType(Long.class);
+
+        // 构建Lua参数
+        List<Object> luaArgs = Lists.newArrayList();
+        noteCollectionDOS.forEach(
+            noteCollectionDO -> luaArgs.add(noteCollectionDO.getNoteId())); // 将每个收藏的ID写入
+        luaArgs.add(expireSeconds); // 最后写入过期时间
+        // 执行
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteCollectListKey), luaArgs.toArray());
+      }
+    } catch (Exception e) {
+      log.error("## 异步初始化【笔记收藏】Roaring Bitmap 异常: ", e);
+    }
+  }
+
+  /**
+   * 获取是否点赞，收藏数据
+   *
+   * @param findNoteIsLikedAndCollectedReqVO
+   * @return
+   */
+  @Override
+  public Response<FindNoteIsLikedAndCollectedRspVO> isLikedAndCollectedData(
+      FindNoteIsLikedAndCollectedReqVO findNoteIsLikedAndCollectedReqVO) {
+    Long noteId = findNoteIsLikedAndCollectedReqVO.getNoteId();
+    // 已经登录的用户
+    Long currUserId = LoginUserContextHolder.getUserId();
+    // 默认未点赞、未收藏
+    boolean isLiked = false;
+    boolean isCollected = false;
+
+    // 若当前用户已经登录
+    if (Objects.nonNull((currUserId))) {
+      // 校验是否点赞
+      isLiked = checkNoteIsLiked(noteId, currUserId);
+      // 校验是否收藏
+      isCollected = checkNoteIsCollected(noteId, currUserId);
+    }
+
+    return Response.success(
+        FindNoteIsLikedAndCollectedRspVO.builder()
+            .noteId(noteId)
+            .isLiked(isLiked)
+            .isCollected(isCollected)
+            .build());
+  }
+
+  /**
+   * 校验是否收藏
+   *
+   * @param noteId
+   * @param currUserId
+   * @return
+   */
+  private boolean checkNoteIsCollected(Long noteId, Long currUserId) {
+    // 是否收藏
+    boolean isCollected = false;
+    // Roaring bitmap key
+    String rbitmapUserNoteCollectListKey =
+        RedisKeyConstants.buildRBitmapUserNoteCollectListKey(currUserId);
+
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    script.setScriptSource(
+        new ResourceScriptSource(
+            new ClassPathResource("/lua/rbitmap_note_collect_only_check.lua")));
+    script.setResultType(Long.class);
+
+    // 执行Lua
+    Long result =
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteCollectListKey), noteId);
+
+    NoteCollectLuaResultEnum noteCollectLuaResultEnum = NoteCollectLuaResultEnum.valueOf(result);
+
+    switch (noteCollectLuaResultEnum) {
+      // redis中roaring bitmap不存在
+      case NOT_EXIST -> {
+        // 从数据库中校验笔记是否被收藏，并异步初始化布隆过滤器，设置过期时间
+        int count = noteCollectionDOMapper.selectCountByUserIdAndNoteId(currUserId, noteId);
+
+        // 过期时间
+        long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+
+        // 目标笔记已经被收藏
+        if (count > 0) {
+          // 异步初始化rbitmap
+          threadPoolTaskExecutor.submit(
+              () ->
+                  batchAddNoteCollect2RBitmapAndExpire(
+                      currUserId, expireSeconds, rbitmapUserNoteCollectListKey));
+          isCollected = true;
+        }
+      }
+      // 目标笔记已经被收藏
+      case NOTE_COLLECTED -> isCollected = true;
+    }
+    return isCollected;
+  }
+
+  /**
+   * 校验是否点赞
+   *
+   * @param noteId
+   * @param currUserId
+   * @return
+   */
+  private boolean checkNoteIsLiked(Long noteId, Long currUserId) {
+    // 是否点赞
+    boolean isLiked = false;
+
+    // Roaring bitmap key
+    String rbitmapUserNoteLikeListKey =
+        RedisKeyConstants.buildRBitmapUserNoteLikeListKey(currUserId);
+
+    DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+    script.setScriptSource(
+        new ResourceScriptSource(new ClassPathResource("/lua/rbitmap_note_like_only_check.lua")));
+    script.setResultType(Long.class);
+
+    Long result =
+        redisTemplate.execute(
+            script, Collections.singletonList(rbitmapUserNoteLikeListKey), noteId);
+
+    NoteLikeLuaResultEnum noteLikeLuaResultEnum = NoteLikeLuaResultEnum.valueOf(result);
+
+    switch (noteLikeLuaResultEnum) {
+      // redis中roaring bitmap
+      case NOT_EXIST -> {
+        // 从数据库中校验笔记是否被点赞，并异步初始化 Roaring Bitmap，设置过期时间
+        int count = noteLikeDOMapper.selectCountByUserIdAndNoteId(currUserId, noteId);
+        // 过期时间
+        long expireSeconds = 60 * 60 * 24 + RandomUtil.randomInt(60 * 60 * 24);
+        // 目标笔记已经被点赞
+        if (count > 0) {
+          // 异步初始化roaring bitmap
+          threadPoolTaskExecutor.submit(
+              () ->
+                  batchAddNoteLike2RBitmapAndExpire(
+                      currUserId, expireSeconds, rbitmapUserNoteLikeListKey));
+          isLiked = true;
+        }
+      }
+      case NOTE_LIKED -> isLiked = true; // Roaring Bitmap 判断已点赞
+    }
+    return isLiked;
   }
 
   /**

@@ -1,6 +1,20 @@
 package com.slilio.xiaohashu.note.biz.constant;
 
 public class RedisKeyConstants {
+  // Roaring Bitmap：用户笔记点赞前缀
+  public static final String R_BITMAP_USER_NOTE_LIKE_KEY = "rbitmap:note:likes:";
+
+  // Roaring Bitmap：用户笔记收藏前缀
+  public static final String R_BITMAP_USER_NOTE_COLLECT_LIST_KEY = "rbitmap:note:collects:";
+
+  public static String buildRBitmapUserNoteLikeListKey(Long userId) {
+    return R_BITMAP_USER_NOTE_LIKE_KEY + userId;
+  }
+
+  public static String buildRBitmapUserNoteCollectListKey(Long userId) {
+    return R_BITMAP_USER_NOTE_COLLECT_LIST_KEY + userId;
+  }
+
   // 笔记详情Key前缀
   public static final String NOTE_DETAIL_KEY = "note:detail:";
 
