@@ -52,4 +52,12 @@ public interface UserCountDOMapper {
    * @return
    */
   int insertOrUpdateNoteTotalByUserId(@Param("count") Long count, @Param("userId") Long userId);
+
+  /**
+   * 根据用户ID查询统计数据
+   *
+   * @param userId
+   * @return
+   */
+  UserCountDO selectByUserId(Long userId);
 }

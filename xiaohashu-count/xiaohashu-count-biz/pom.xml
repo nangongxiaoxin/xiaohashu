@@ -20,6 +20,11 @@
             <artifactId>xiaohashu-common</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-count-api</artifactId>
+        </dependency>
+
         <!--业务接口日志组件-->
         <dependency>
             <groupId>com.slilio</groupId>
