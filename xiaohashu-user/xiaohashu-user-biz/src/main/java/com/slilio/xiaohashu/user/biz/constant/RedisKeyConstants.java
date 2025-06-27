@@ -14,6 +14,19 @@ public class RedisKeyConstants {
   /** 用户信息数据Key前缀 */
   private static final String USER_INFO_KEY_PREFIX = "user:info:";
 
+  /** 用户主页信息数据Key前缀 */
+  private static final String USER_PROFILE_KEY_PREFIX = "user:profile:";
+
+  /**
+   * 构建角色主要信息对应的KEY
+   *
+   * @param userId
+   * @return
+   */
+  public static String buildUserProfileKey(Long userId) {
+    return USER_PROFILE_KEY_PREFIX + userId;
+  }
+
   /**
    * 用户对应的角色集合 KEY
    *

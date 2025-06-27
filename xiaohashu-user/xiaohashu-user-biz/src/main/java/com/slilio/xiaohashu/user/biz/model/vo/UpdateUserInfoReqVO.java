@@ -1,5 +1,6 @@
 package com.slilio.xiaohashu.user.biz.model.vo;
 
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,9 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @Builder
 public class UpdateUserInfoReqVO {
+  @NotNull(message = "用户ID不能为空")
+  private Long userId; // 用户ID
+
   private MultipartFile avatar; // 头像
   private String nickname; // 昵称
   private String xiaohashuId; // 小哈书ID

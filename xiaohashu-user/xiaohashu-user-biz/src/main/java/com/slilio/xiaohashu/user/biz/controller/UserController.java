@@ -2,6 +2,8 @@ package com.slilio.xiaohashu.user.biz.controller;
 
 import com.slilio.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.slilio.framework.common.response.Response;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileReqVO;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileRspVO;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.service.UserService;
 import com.slilio.xiaohashu.user.dto.req.*;
@@ -24,6 +26,7 @@ public class UserController {
   @Resource private UserService userService;
 
   @PostMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @ApiOperationLog(description = " 用户信息修改")
   public Response<?> updateUserInfo(@Validated UpdateUserInfoReqVO updateUserInfoReqVO) {
     return userService.updateUserInfo(updateUserInfoReqVO);
   }
@@ -61,5 +64,12 @@ public class UserController {
   public Response<List<FindUserByIdRspDTO>> findByIds(
       @Validated @RequestBody FindUsersByIdsReqDTO findUsersByIdsReqDTO) {
     return userService.findByIds(findUsersByIdsReqDTO);
+  }
+
+  @PostMapping("/profile")
+  @ApiOperationLog(description = "获取用户首页信息")
+  public Response<FindUserProfileRspVO> findUserProfile(
+      @Validated @RequestBody FindUserProfileReqVO findUserProfileReqVO) {
+    return userService.findUserProfile(findUserProfileReqVO);
   }
 }
