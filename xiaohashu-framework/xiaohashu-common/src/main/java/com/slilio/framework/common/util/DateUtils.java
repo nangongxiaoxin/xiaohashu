@@ -1,7 +1,9 @@
 package com.slilio.framework.common.util;
 
 import com.slilio.framework.common.constant.DateConstants;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 
@@ -55,6 +57,17 @@ public class DateUtils {
     } else { // 如果是去年或更早
       return dateTime.format(DateConstants.DATE_FORMAT_Y_M_D);
     }
+  }
+
+  public static int calculateAge(LocalDate birthDate) {
+    // 获取当前时间
+    LocalDate currentDate = LocalDate.now();
+
+    // 计算时间差
+    Period period = Period.between(birthDate, currentDate);
+
+    // 只返回年龄
+    return period.getYears();
   }
 
   // 测试

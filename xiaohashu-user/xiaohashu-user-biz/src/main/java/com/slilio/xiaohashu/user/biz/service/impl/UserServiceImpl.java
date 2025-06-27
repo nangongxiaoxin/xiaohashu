@@ -11,6 +11,7 @@ import com.slilio.framework.common.enums.DeletedEnum;
 import com.slilio.framework.common.enums.StatusEnum;
 import com.slilio.framework.common.exception.BizException;
 import com.slilio.framework.common.response.Response;
+import com.slilio.framework.common.util.DateUtils;
 import com.slilio.framework.common.util.JsonUtils;
 import com.slilio.framework.common.util.ParamUtils;
 import com.slilio.xiaohashu.user.biz.constant.RedisKeyConstants;
@@ -23,6 +24,8 @@ import com.slilio.xiaohashu.user.biz.domain.mapper.UserDOMapper;
 import com.slilio.xiaohashu.user.biz.domain.mapper.UserRoleDOMapper;
 import com.slilio.xiaohashu.user.biz.enums.ResponseCodeEnum;
 import com.slilio.xiaohashu.user.biz.enums.SexEnum;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileReqVO;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileRspVO;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.slilio.xiaohashu.user.biz.rpc.OssRpcService;
@@ -489,5 +492,48 @@ public class UserServiceImpl implements UserService {
     }
 
     return Response.success(findUserByIdRspDTOS);
+  }
+
+  /**
+   * 获取用户主页信息
+   *
+   * @param findUserProfileReqVO
+   * @return
+   */
+  @Override
+  public Response<FindUserProfileRspVO> findUserProfile(FindUserProfileReqVO findUserProfileReqVO) {
+    Long userId = findUserProfileReqVO.getUserId();
+
+    // 如果入参id为空，则为当前登录的用户ID
+    if (Objects.isNull(userId)) {
+      userId = LoginUserContextHolder.getUserId();
+    }
+    // TODO 1. 优先查询缓存
+
+    //  2. 再查询数据库
+    UserDO userDO = userDOMapper.selectByPrimaryKey(userId);
+
+    if (Objects.isNull(userDO)) {
+      throw new BizException(ResponseCodeEnum.USER_NOT_FOUNT);
+    }
+
+    // 返参
+    FindUserProfileRspVO findUserProfileRspVO =
+        FindUserProfileRspVO.builder()
+            .userId(userId)
+            .avatar(userDO.getAvatar())
+            .nickname(userDO.getNickname())
+            .xiaohashuId(userDO.getXiaohashuId())
+            .sex(userDO.getSex())
+            .introduction(userDO.getIntroduction())
+            .build();
+
+    // 年龄
+    LocalDate birthDate = userDO.getBirthday();
+    findUserProfileRspVO.setAge(Objects.isNull(birthDate) ? 0 : DateUtils.calculateAge(birthDate));
+
+    // TODO 3. Feign 调用计数服务
+
+    return Response.success();
   }
 }

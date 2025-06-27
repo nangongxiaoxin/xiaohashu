@@ -1,6 +1,8 @@
 package com.slilio.xiaohashu.user.biz.service;
 
 import com.slilio.framework.common.response.Response;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileReqVO;
+import com.slilio.xiaohashu.user.biz.model.vo.FindUserProfileRspVO;
 import com.slilio.xiaohashu.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.slilio.xiaohashu.user.dto.req.*;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
@@ -55,4 +57,12 @@ public interface UserService {
    * @return
    */
   Response<List<FindUserByIdRspDTO>> findByIds(FindUsersByIdsReqDTO findUsersByIdsReqDTO);
+
+  /**
+   * 获取用户主页信息
+   *
+   * @param findUserProfileReqVO
+   * @return
+   */
+  Response<FindUserProfileRspVO> findUserProfile(FindUserProfileReqVO findUserProfileReqVO);
 }

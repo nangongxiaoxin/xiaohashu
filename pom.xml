@@ -9,7 +9,7 @@
     <!-- 项目名称 -->
     <name>${project.artifactId}</name>
     <!-- 项目描述 -->
-    <description>小哈书（仿小红书），基于 Spring Cloud Alibaba 微服务架构</description>
+    <description>（仿小红书），基于 Spring Cloud Alibaba 微服务架构</description>
 
     <!-- 打包方式 -->
     <packaging>pom</packaging>
