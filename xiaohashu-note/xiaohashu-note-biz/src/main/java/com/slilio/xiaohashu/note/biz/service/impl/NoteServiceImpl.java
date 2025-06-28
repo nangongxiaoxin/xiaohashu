@@ -32,10 +32,7 @@ import com.slilio.xiaohashu.note.biz.service.NoteService;
 import com.slilio.xiaohashu.user.dto.resp.FindUserByIdRspDTO;
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
@@ -1356,6 +1353,76 @@ public class NoteServiceImpl implements NoteService {
             .isLiked(isLiked)
             .isCollected(isCollected)
             .build());
+  }
+
+  /**
+   * 用户主页查询-查询已经发布的笔记列表
+   *
+   * @param findPublishedNoteListReqVO
+   * @return
+   */
+  @Override
+  public Response<FindPublishedNoteListRspVO> findPublishedNoteList(
+      FindPublishedNoteListReqVO findPublishedNoteListReqVO) {
+
+    Long userId = findPublishedNoteListReqVO.getUserId();
+    Long cursor = findPublishedNoteListReqVO.getCursor(); // 游标
+
+    // 优先查询缓存
+
+    // 缓存无，查询数据库
+    List<NoteDO> noteDOS = noteDOMapper.selectPublishedNoteListByUserIdAndCursor(userId, cursor);
+    // 返参VO
+    FindPublishedNoteListRspVO findPublishedNoteListRspVO = null;
+    if (CollUtil.isNotEmpty(noteDOS)) {
+      // do转vo
+      List<NoteItemRspVO> noteVOS =
+          noteDOS.stream()
+              .map(
+                  noteDO -> {
+                    // 封面
+                    String cover =
+                        StringUtils.isNotBlank(noteDO.getImgUris())
+                            ? StringUtils.split(noteDO.getImgUris(), ",")[0]
+                            : null;
+
+                    NoteItemRspVO noteItemRspVO =
+                        NoteItemRspVO.builder()
+                            .noteId(noteDO.getId())
+                            .type(noteDO.getType())
+                            .creatorId(noteDO.getCreatorId())
+                            .cover(cover)
+                            .videoUri(noteDO.getVideoUri())
+                            .title(noteDO.getTitle())
+                            .build();
+                    return noteItemRspVO;
+                  })
+              .toList();
+
+      // Feign调用用户服务，获取用户头像和昵称
+      Optional<Long> creatorIdOptional = noteDOS.stream().map(NoteDO::getCreatorId).findAny();
+      FindUserByIdRspDTO findUserByIdRspDTO = userRpcService.findById(creatorIdOptional.get());
+      if (Objects.nonNull(findUserByIdRspDTO)) {
+        // 循环VO集合，分别设置头像和昵称
+        noteVOS.forEach(
+            noteItemRspVO -> {
+              noteItemRspVO.setAvatar(findUserByIdRspDTO.getAvatar());
+              noteItemRspVO.setNickname(findUserByIdRspDTO.getNickName());
+            });
+      }
+
+      // Feign调用计数服务，批量获取笔记点赞数
+
+      // 过滤出最早发布的笔记ID，充当下一页的游标
+      Optional<Long> earliestNoteId = noteDOS.stream().map(NoteDO::getId).min(Long::compareTo);
+
+      findPublishedNoteListRspVO =
+          FindPublishedNoteListRspVO.builder()
+              .notes(noteVOS)
+              .nextCursor(earliestNoteId.orElse(null))
+              .build();
+    }
+    return Response.success(findPublishedNoteListRspVO);
   }
 
   /**

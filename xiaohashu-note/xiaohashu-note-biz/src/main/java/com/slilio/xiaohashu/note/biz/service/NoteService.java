@@ -99,4 +99,13 @@ public interface NoteService {
    */
   Response<FindNoteIsLikedAndCollectedRspVO> isLikedAndCollectedData(
       FindNoteIsLikedAndCollectedReqVO findNoteIsLikedAndCollectedReqVO);
+
+  /**
+   * 用户主页查询-查询已经发布的笔记列表
+   *
+   * @param findPublishedNoteListReqVO
+   * @return
+   */
+  Response<FindPublishedNoteListRspVO> findPublishedNoteList(
+      FindPublishedNoteListReqVO findPublishedNoteListReqVO);
 }

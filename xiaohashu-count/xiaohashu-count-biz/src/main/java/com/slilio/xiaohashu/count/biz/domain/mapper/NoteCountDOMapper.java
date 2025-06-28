@@ -1,6 +1,7 @@
 package com.slilio.xiaohashu.count.biz.domain.mapper;
 
 import com.slilio.xiaohashu.count.biz.domain.dataobject.NoteCountDO;
+import java.util.List;
 import org.apache.ibatis.annotations.Param;
 
 public interface NoteCountDOMapper {
@@ -43,4 +44,12 @@ public interface NoteCountDOMapper {
    * @return
    */
   int insertOrUpdateCommentTotalByNoteId(@Param("count") int count, @Param("noteId") Long noteId);
+
+  /**
+   * 根据笔记ID批量查询
+   *
+   * @param noteIds
+   * @return
+   */
+  List<NoteCountDO> selectByNoteIds(@Param("noteIds") List<Long> noteIds);
 }
