@@ -39,4 +39,8 @@ public interface MQConstants {
 
   /** Tag：笔记删除 */
   String TAG_NOTE_DELETE = "deleteNote";
+
+  /** topic：延迟双删redis已经发布的笔记列表缓存 */
+  String TOPIC_DELAY_DELETE_PUBLISHED_NOTE_LIST_REDIS_CACHE =
+      "DelayDeletePublishedNoteListRedisCacheTopic";
 }

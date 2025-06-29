@@ -22,4 +22,5 @@ public class NoteItemRspVO {
   private String nickname; // 昵称
   private String avatar; // 头像
   private String likeTotal; // 被点赞数
+  private Boolean isLiked; // 当前登录用户是否已经点赞
 }

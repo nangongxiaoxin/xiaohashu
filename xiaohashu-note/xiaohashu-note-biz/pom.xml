@@ -22,6 +22,11 @@
 
         <dependency>
             <groupId>com.slilio</groupId>
+            <artifactId>xiaohashu-count-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.slilio</groupId>
             <artifactId>xiaohashu-kv-api</artifactId>
         </dependency>
 

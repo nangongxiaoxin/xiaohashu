@@ -7,6 +7,19 @@ public class RedisKeyConstants {
   // Roaring Bitmap：用户笔记收藏前缀
   public static final String R_BITMAP_USER_NOTE_COLLECT_LIST_KEY = "rbitmap:note:collects:";
 
+  // 已发布笔记列表key前缀
+  private static final String PUBLISHED_NOTE_LIST_KEY = "note:published:list:";
+
+  /**
+   * 构建完整的已发布笔记列表key
+   *
+   * @param userId
+   * @return
+   */
+  public static String buildPublishedNoteListKey(Long userId) {
+    return PUBLISHED_NOTE_LIST_KEY + userId;
+  }
+
   public static String buildRBitmapUserNoteLikeListKey(Long userId) {
     return R_BITMAP_USER_NOTE_LIKE_KEY + userId;
   }
