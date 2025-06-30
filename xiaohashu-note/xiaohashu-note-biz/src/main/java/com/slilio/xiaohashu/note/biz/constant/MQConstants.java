@@ -43,4 +43,6 @@ public interface MQConstants {
   /** topic：延迟双删redis已经发布的笔记列表缓存 */
   String TOPIC_DELAY_DELETE_PUBLISHED_NOTE_LIST_REDIS_CACHE =
       "DelayDeletePublishedNoteListRedisCacheTopic";
+
+  String TOPIC_PUBLISH_NOTE_TRANSACTION = "PublishNoteTransactionTopic"; // Topic：发布笔记事务消息
 }

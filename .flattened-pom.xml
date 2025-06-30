@@ -7,7 +7,7 @@
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.artifactId}</name>
-  <description>小哈书（仿小红书），基于 Spring Cloud Alibaba 微服务架构</description>
+  <description>（仿小红书），基于 Spring Cloud Alibaba 微服务架构</description>
   <modules>
     <module>xiaohashu-auth</module>
     <module>xiaohashu-framework</module>
@@ -17,6 +17,11 @@
     <module>xiaohashu-kv</module>
     <module>xiaohashu-distributed-id-generator</module>
     <module>xiaohashu-note</module>
+    <module>xiaohashu-user-relation</module>
+    <module>xiaohashu-count</module>
+    <module>xiaohashu-data-align</module>
+    <module>xiaohashu-search</module>
+    <module>xiaohashu-comment</module>
   </modules>
   <properties>
     <minio.version>8.2.1</minio.version>
@@ -31,26 +36,38 @@
     <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
     <dysmsapi.version>2.0.24</dysmsapi.version>
     <spring-cloud.version>2022.0.0</spring-cloud.version>
+    <elasticsearch.version>7.3.0</elasticsearch.version>
     <mybatis-generator-maven-plugin.version>1.3.5</mybatis-generator-maven-plugin.version>
+    <mapstruct.version>1.5.5.Final</mapstruct.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <commons-lang3.version>3.12.0</commons-lang3.version>
     <caffeine.version>3.1.8</caffeine.version>
+    <rocketmq.version>2.2.3</rocketmq.version>
     <java.version>17</java.version>
     <maven.compiler.source>${java.version}</maven.compiler.source>
     <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
     <activation.version>1.1.1</activation.version>
     <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <buffertrigger.version>0.2.21</buffertrigger.version>
     <jaxb-runtime.version>2.3.3</jaxb-runtime.version>
     <revision>0.0.1-SNAPSHOT</revision>
     <lombok.version>1.18.30</lombok.version>
     <jaxb-api.version>2.3.1</jaxb-api.version>
     <maven.compiler.target>${java.version}</maven.compiler.target>
+    <rocketmq-client.version>4.9.4</rocketmq-client.version>
+    <canal.version>1.1.7</canal.version>
     <druid.version>1.2.23</druid.version>
     <nacos-config.version>0.3.0-RC</nacos-config.version>
     <transmittable-thread-local.version>2.14.2</transmittable-thread-local.version>
+    <xxl-job.version>2.4.1</xxl-job.version>
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.slilio</groupId>
+        <artifactId>xiaohashu-search-api</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
       <dependency>
         <groupId>com.slilio</groupId>
         <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
@@ -78,6 +95,11 @@
       </dependency>
       <dependency>
         <groupId>com.slilio</groupId>
+        <artifactId>xiaohashu-count-api</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.slilio</groupId>
         <artifactId>xiaohashu-spring-boot-starter-biz-operationlog</artifactId>
         <version>0.0.1-SNAPSHOT</version>
       </dependency>
@@ -90,6 +112,11 @@
         <groupId>com.slilio</groupId>
         <artifactId>xiaohashu-spring-boot-starter-biz-context</artifactId>
         <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>org.mapstruct</groupId>
+        <artifactId>mapstruct</artifactId>
+        <version>${mapstruct.version}</version>
       </dependency>
       <dependency>
         <groupId>org.springframework.boot</groupId>
@@ -111,6 +138,11 @@
         <version>${spring-cloud.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.phantomthief</groupId>
+        <artifactId>buffer-trigger</artifactId>
+        <version>${buffertrigger.version}</version>
       </dependency>
       <dependency>
         <groupId>org.projectlombok</groupId>
@@ -222,6 +254,51 @@
         <artifactId>caffeine</artifactId>
         <version>${caffeine.version}</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.rocketmq</groupId>
+        <artifactId>rocketmq-spring-boot-starter</artifactId>
+        <version>${rocketmq.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.xuxueli</groupId>
+        <artifactId>xxl-job-core</artifactId>
+        <version>${xxl-job.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-high-level-client</artifactId>
+        <version>${elasticsearch.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.elasticsearch.client</groupId>
+        <artifactId>elasticsearch-rest-client</artifactId>
+        <version>${elasticsearch.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.elasticsearch</groupId>
+        <artifactId>elasticsearch</artifactId>
+        <version>${elasticsearch.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.alibaba.otter</groupId>
+        <artifactId>canal.client</artifactId>
+        <version>${canal.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.alibaba.otter</groupId>
+        <artifactId>canal.common</artifactId>
+        <version>${canal.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.alibaba.otter</groupId>
+        <artifactId>canal.protocol</artifactId>
+        <version>${canal.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.rocketmq</groupId>
+        <artifactId>rocketmq-client</artifactId>
+        <version>${rocketmq-client.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <repositories>
@@ -310,6 +387,26 @@
         <configuration>
           <flattenMode>resolveCiFriendliesOnly</flattenMode>
           <updatePomFile>true</updatePomFile>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <configuration>
+          <source>${java.version}</source>
+          <target>${java.version}</target>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+              <version>${mapstruct.version}</version>
+            </path>
+          </annotationProcessorPaths>
         </configuration>
       </plugin>
     </plugins>

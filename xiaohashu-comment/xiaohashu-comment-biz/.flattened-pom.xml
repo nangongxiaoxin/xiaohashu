@@ -4,38 +4,18 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.slilio</groupId>
-    <artifactId>xiaohashu-note</artifactId>
+    <artifactId>xiaohashu-comment</artifactId>
     <version>0.0.1-SNAPSHOT</version>
   </parent>
   <groupId>com.slilio</groupId>
-  <artifactId>xiaohashu-note-biz</artifactId>
+  <artifactId>xiaohashu-comment-biz</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <name>${project.artifactId}</name>
-  <description>笔记服务业务</description>
+  <description>评论服务业务层</description>
   <dependencies>
     <dependency>
       <groupId>com.slilio</groupId>
       <artifactId>xiaohashu-user-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.slilio</groupId>
-      <artifactId>xiaohashu-count-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.slilio</groupId>
-      <artifactId>xiaohashu-kv-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.slilio</groupId>
-      <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-data-redis</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-pool2</artifactId>
     </dependency>
     <dependency>
       <groupId>com.slilio</groupId>
@@ -54,6 +34,10 @@
       <artifactId>xiaohashu-spring-boot-starter-jackson</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
     </dependency>
@@ -62,16 +46,9 @@
       <artifactId>rocketmq-spring-boot-starter</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.mapstruct</groupId>
-      <artifactId>mapstruct</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mybatis.spring.boot</groupId>
@@ -94,8 +71,32 @@
       <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.springframework.retry</groupId>
+      <artifactId>spring-retry</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-aop</artifactId>
+    </dependency>
+    <dependency>
       <groupId>org.apache.rocketmq</groupId>
       <artifactId>rocketmq-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.slilio</groupId>
+      <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.slilio</groupId>
+      <artifactId>xiaohashu-kv-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.phantomthief</groupId>
+      <artifactId>buffer-trigger</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
   </dependencies>
   <build>
