@@ -34,6 +34,12 @@ spring:
             - Path=/comment/**
           filters:
             - StripPrefix=1
+        - id: count
+          uri: lb://xiaohashu-count
+          predicates:
+            - Path=/count/**
+          filters:
+            - StripPrefix=1
 
   data:
     redis:

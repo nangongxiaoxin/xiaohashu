@@ -95,6 +95,12 @@
 
             <dependency>
                 <groupId>com.slilio</groupId>
+                <artifactId>xiaohashu-user-relation-biz</artifactId>
+                <version>${revision}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.slilio</groupId>
                 <artifactId>xiaohashu-distributed-id-generator-api</artifactId>
                 <version>${revision}</version>
             </dependency>
@@ -523,5 +529,5 @@
         </repository>
     </repositories>
 
-    
+
 </project>

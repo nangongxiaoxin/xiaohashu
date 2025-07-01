@@ -549,6 +549,7 @@ public class UserServiceImpl implements UserService {
       userId = LoginUserContextHolder.getUserId();
     }
     // 1.1 优先查询本地缓存
+
     if (!Objects.equals(userId, LoginUserContextHolder.getUserId())) { // 本人查看不走缓存
       FindUserProfileRspVO userProfileLocalCache = PROFILE_LOCAL_CACHE.getIfPresent(userId);
 
@@ -603,6 +604,8 @@ public class UserServiceImpl implements UserService {
 
     // 异步同步到redis
     syncUserProfile2Redis(userProfileRedisKey, findUserProfileRspVO);
+    // 异步同步到本地缓存
+    syncUserProfile2LocalCache(userId, findUserProfileRspVO);
 
     return Response.success(findUserProfileRspVO);
   }
